@@ -1,0 +1,21 @@
+#nav-bar{
+    margin-bottom: 20px;
+}
+
+#nav-bar div{
+    background-color: black;
+    color: white;
+    border-radius: 15px;
+    display: flex;
+    justify-content: center;
+}
+
+#nav-bar button{
+    background-color: #310303;
+    color: white;
+    border: 1px solid white;
+    border-radius: 15px;
+    padding: 5px;
+    margin: 5px;
+    cursor: pointer;
+}
