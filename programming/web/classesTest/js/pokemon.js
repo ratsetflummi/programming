@@ -9,18 +9,14 @@ document.addEventListener("DOMContentLoaded",async()=>{
     let enemyPokemonArea = document.getElementById("enemy-pokemon");
     let movesArea = document.getElementById("moves");
     let textOutputArea = document.getElementById("text-output");
-    
-    document.getElementById("show-team").addEventListener("click",async ()=>{
+
+    document.getElementById("start-battle").addEventListener("click",async ()=>{
         let encounterTable = new EncounterTable({"common":["rattata","ekans"],"uncommon":["meowth","pikachu"]});
         let encounter = encounterTable.rollEncounter();
-        console.log(encounter);
         let pokemon = await Pokemon.create(await getApiData(["pokemon","pokemon-species"],encounter));
         pokemon.catch();
 
-        console.log(pokemon);
         let battle = new Battle(pokemon,gameData.player,enemyPokemonArea,playerPokemonArea,movesArea,textOutputArea);
-        console.log(battle);
-        console.log("showing");
     });
     //let pokemonList = new PokemonList(await getApiData("pokemon"));
     
@@ -33,7 +29,6 @@ document.addEventListener("DOMContentLoaded",async()=>{
 
     
     gameData.player.inventory.addItem(await getApiData("item","exp-share"));
-    console.log(gameData.player);
     
     
     gameData.player.team.addPokemon(await Pokemon.create(await getApiData(["pokemon","pokemon-species"],"turtwig")));
@@ -50,6 +45,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
     gameData.player.team.members[0].levelUp();
 
 
+    document.getElementById("start-battle").style.display = "block";
 })
 
 async function getApiData(type, identifier = "") {
@@ -100,7 +96,6 @@ class Pokemon {
             this.learnLevelUpMoves(level);
         }
 
-        console.log(this);
     }
     static async create(pokemon_data, level = 5) {
         const pokemon = new Pokemon(pokemon_data, level);
@@ -114,7 +109,6 @@ class Pokemon {
         console.log(`trying to catch ${this.name}`);
     }
     async learnMove(move_name){
-        console.log(move_name);
         let move = new Move(await getApiData("move",move_name));
         if(this.moves.length < 4){
             this.moves.push(move);
@@ -131,14 +125,12 @@ class Pokemon {
         this.moves = this.moves.filter(m=>m.id!=move.id);
     }
     getName(){
-        console.log(this);
         return this.species.names.find(name=>name.language.name == language).name;
     }
     showPokemon(parent){
         this.domObjects.pokemonDiv.innerHTML = "";
         let nameLabel = document.createElement("h3");
         let image = document.createElement("img");
-        console.log(this);
         image.src = this.species.sprites.front_default
         nameLabel.innerText = this.getName() + " - Lvl. " + this.level;
         this.domObjects.pokemonDiv.appendChild(image);
@@ -176,7 +168,6 @@ class Pokemon {
             )
         )
         moves.forEach(async move=>{
-            console.log(move);
             await this.learnMove(move.move.name);
         })
     }
@@ -213,7 +204,6 @@ class Pokemon {
         this.currentHP = this.stats.hp;
     }
     calculateGender(){
-        console.log(this.getName());
         let genderValue = (this.pid % 256) % 8;
         let genderRate = this.species.gender_rate;
         if(genderRate == -1){
@@ -256,7 +246,6 @@ class PokemonList {
         this.count = list.count;
         this.list = Array.isArray(list["results"]) ? [...list["results"]] : Object.assign({}, list);
         this.list.forEach(async pokemon => {
-            console.log(pokemon);
         })
     }
 }
@@ -399,13 +388,12 @@ class Battle{
             let button = document.createElement("button");
             button.classList.add("move-button");
             button.classList.add("battle-ui");
-            console.log(move);
             button.innerText = move.names.find(name=>name.language.name == language).name;
             this.domObjects.moveDiv.appendChild(button);
             button.addEventListener("click",()=>{this.useMove(this.activePokemon,this.enemy,move)})
         })
     }
-    calculateMoveDamage(attacker,defender,move){
+    async calculateMoveDamage(attacker,defender,move,pondering=null){
         if(move.power == null){
             return 0;
         }
@@ -413,9 +401,11 @@ class Battle{
         let f1 = 1;
         let f2 = 1;
         let f3 = 1;
-        if((Math.random() * 100) <= 6.25){
+        if(!pondering && (Math.random() * 100) <= 6.25){
             crit = 1.5;
-            console.log("it's a crit");
+            console.log(this.turn);
+            console.log("it's a crit!");
+            await this.updateMessage(null,null,"move-crit");
         }
         let damageClass = move.damage_class.name; 
         let attackStat = null;
@@ -436,7 +426,6 @@ class Battle{
         let vulnerability1 = 1;
         let vulnerability2 = 1;
         let random = 100 - Math.round(Math.random() * 15);
-        console.log(attacker,defender,move);
         attacker.species.types.forEach(type=>{
             if(type.name == move.type.name){
                 stab = 1.5;
@@ -456,24 +445,26 @@ class Battle{
         })
         // TODO critical hits and f1, f2, f3
         // formula taken from https://www.pokewiki.de/Schaden#Schadensberechnung
-        console.log(attacker.level,move.power,attackStat,defenseStat,crit,random,stab,vulnerability1,vulnerability2);
+        
         let damage = Math.round(((attacker.level*(2/5)+2)*move.power*(attackStat/(50*defenseStat))*f1+2)*crit*f2*(random/100)*stab*vulnerability1*vulnerability2*f3);
-        console.log(damage);
+        
         return damage;
     }
     async useMove(attacker,defender,move){
         document.querySelectorAll(".battle-ui").forEach(element=>{
             element.disabled = true;
         })
+        
+        this.updateMessage(attacker,move,"move");
         let repeats = 1;
         if(move.meta.max_hits){
             repeats = getRandomInRange(move.meta.min_hits,move.meta.max_hits);
         }
         for(let i = 0; i< repeats;i++){
-            let damage = this.calculateMoveDamage(attacker,defender,move);
+            await sleep(500);
+            let damage = await this.calculateMoveDamage(attacker,defender,move);
             defender.lowerHp(damage);
             defender.updateHpBar();
-            await sleep(1000);
         }
         this.calculateMoveStatus(attacker,defender,move);
         this.changeTurn();
@@ -484,9 +475,12 @@ class Battle{
     }
     changeTurn(){
         this.turn = this.turn == "player" ? "enemy" : "player";
-        console.log(this.turn);
     }
     startTurn(){
+        if(this.enemy.currentHP == 0 || this.activePokemon.currentHP == 0){
+            this.defeatPokemon();
+            return;
+        }
         if(this.turn == "player"){
             this.startPlayerTurn();
         }
@@ -500,15 +494,64 @@ class Battle{
         })
         console.log("start player turn");
     }
-    startEnemyTurn(){
+    async startEnemyTurn(){
         let bestMove = this.enemy.moves[getRandomInRange(0,this.enemy.moves.length-1)]
         let bestMoveDamage = 0;
-        this.enemy.moves.forEach(move=>{
-            if(this.calculateMoveDamage(this.enemy,this.activePokemon,move) > bestMoveDamage){
+        this.enemy.moves.forEach(async move=>{
+            let damage = await this.calculateMoveDamage(this.enemy,this.activePokemon,move,"pondering");
+            console.log(bestMove,bestMoveDamage,damage);
+            if(damage > bestMoveDamage){
                 bestMove = move;
+                bestMoveDamage = damage;
             }
         })
         this.useMove(this.enemy,this.activePokemon,bestMove);
+    }
+    defeatPokemon(){
+        if(this.activePokemon.currentHP == 0){
+            this.defeatPlayer();
+        } else if(this.enemy.currentHP == 0){
+            this.defeatEnemy();
+        }
+    }
+    defeatPlayer(){
+        this.updateMessage(this.activePokemon,null,"faint");
+    }
+    defeatEnemy(){
+        this.updateMessage(this.enemy,null,"faint");
+    }
+    async updateMessage(subject,object,action){
+        let message = this.getMessage(subject,object,action);
+        this.domObjects.textOutputDiv.innerText = message;
+        await sleep(500);
+    }
+    getMessage(subject,object,action){
+        if(action == "move"){
+            let ownerPrefix = getOwnerPrefix(this.turn,subject.owner);
+            let pokemonName = subject.getName();
+            let moveName = object.getName();
+            return `${ownerPrefix}${pokemonName} used ${moveName}.`;
+        }
+        if(action == "move-crit"){
+            return "A critical hit!";
+        }
+        if(action == "faint"){
+            let ownerPrefix = getOwnerPrefix(this.turn,subject.owner);
+            return `${ownerPrefix}${subject.getName()} fainted.`;
+        }
+
+
+        function getOwnerPrefix(turn,owner){
+            if(turn == "enemy"){
+                if(owner == "wild"){
+                    return "Wild ";
+                } else {
+                    return "Enemy "
+                }
+            } else {
+                return "";
+            }
+        }
     }
 }
 
@@ -535,7 +578,6 @@ class EncounterTable{
             }
         })
         let chance = (Math.random() * encounterChances.length -1).toFixed(0); 
-        console.log(encounterChances,chance);
         return encounterChances[chance];
     }
 }
@@ -574,6 +616,9 @@ class Move{
     constructor(moveData){
         Object.assign(this,moveData);
         this.currentPP = this.pp;
+    }
+    getName(){
+        return this.names.find(name=>name.language.name == language).name;
     }
 }
 
