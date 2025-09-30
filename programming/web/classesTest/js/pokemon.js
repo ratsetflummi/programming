@@ -41,13 +41,13 @@ document.addEventListener("DOMContentLoaded",async()=>{
     gameData.player.team.addPokemon(await Pokemon.create(await getApiData(["pokemon","pokemon-species"],"glameow")));
     gameData.player.team.addPokemon(await Pokemon.create(await getApiData(["pokemon","pokemon-species"],"seel")));
 
-    gameData.player.team.members[0].learnMove(new Move(await getApiData("move","tackle")));
-    gameData.player.team.members[0].learnMove(new Move(await getApiData("move","double-slap")));
-    gameData.player.team.members[0].learnMove(new Move(await getApiData("move","leer")));
-    gameData.player.team.members[0].learnMove(new Move(await getApiData("move","swords-dance")));
-    gameData.player.team.members[0].learnMove(new Move(await getApiData("move","whirlwind")));
+    // gameData.player.team.members[0].learnMove("tackle");
+    // gameData.player.team.members[0].learnMove("double-slap");
+    // gameData.player.team.members[0].learnMove("leer");
+    // gameData.player.team.members[0].learnMove("swords-dance");
+    // gameData.player.team.members[0].learnMove("whirlwind");
     console.log(gameData.player);
-
+    gameData.player.team.members[0].levelUp();
 
 
 })
@@ -77,7 +77,8 @@ async function getApiData(type, identifier = "") {
 
 
 class Pokemon {
-    constructor(pokemon_data,level=5){
+    constructor(pokemon_data,level=5,owner="wild"){
+        this.owner = owner;
         this.pid = Math.round(Math.random() * 4294967295);
         this.species = new PokemonSpecies(pokemon_data);
         this.level = level;
@@ -95,6 +96,10 @@ class Pokemon {
         this.stats = null;
         this.currentHP = null;
 
+        for(let level = 0;level<=this.level;level++){
+            this.learnLevelUpMoves(level);
+        }
+
         console.log(this);
     }
     static async create(pokemon_data, level = 5) {
@@ -108,8 +113,17 @@ class Pokemon {
     catch(){
         console.log(`trying to catch ${this.name}`);
     }
-    learnMove(move){
+    async learnMove(move_name){
+        console.log(move_name);
+        let move = new Move(await getApiData("move",move_name));
         if(this.moves.length < 4){
+            this.moves.push(move);
+        } else if(this.owner == "wild"){
+            this.forgetMove(this.moves[0]);
+            this.moves.push(move);
+        } else {
+            // TODO ask player to forget move
+            this.forgetMove(this.moves[0]);
             this.moves.push(move);
         }
     }
@@ -150,7 +164,23 @@ class Pokemon {
             this.currentHP = 0;
         }
     }
-
+    levelUp(){
+        this.level += 1;
+        this.calculateStats();
+        this.learnLevelUpMoves();
+    }
+    learnLevelUpMoves(level=this.level){
+        let moves = this.species.moves.filter(move =>
+            move.version_group_details.some(
+                detail => detail.move_learn_method.name === "level-up" && detail.level_learned_at == level
+            )
+        )
+        moves.forEach(async move=>{
+            console.log(move);
+            await this.learnMove(move.move.name);
+        })
+    }
+    moves = [{version_group_details:[{move_learn_method:{name:"level-up"}}]}]
     generateIVs(){
         let ivs = {"hp":0,"attack":0,"defense":0,"special-attack":0,"special-defense":0,"speed":0};
         Object.keys(ivs).forEach(key=>{
@@ -369,12 +399,16 @@ class Battle{
             let button = document.createElement("button");
             button.classList.add("move-button");
             button.classList.add("battle-ui");
+            console.log(move);
             button.innerText = move.names.find(name=>name.language.name == language).name;
             this.domObjects.moveDiv.appendChild(button);
             button.addEventListener("click",()=>{this.useMove(this.activePokemon,this.enemy,move)})
         })
     }
     calculateMoveDamage(attacker,defender,move){
+        if(move.power == null){
+            return 0;
+        }
         let crit = 1;
         let f1 = 1;
         let f2 = 1;
@@ -467,8 +501,14 @@ class Battle{
         console.log("start player turn");
     }
     startEnemyTurn(){
-        console.log(this.enemy);
-        console.log("start enemy turn");
+        let bestMove = this.enemy.moves[getRandomInRange(0,this.enemy.moves.length-1)]
+        let bestMoveDamage = 0;
+        this.enemy.moves.forEach(move=>{
+            if(this.calculateMoveDamage(this.enemy,this.activePokemon,move) > bestMoveDamage){
+                bestMove = move;
+            }
+        })
+        this.useMove(this.enemy,this.activePokemon,bestMove);
     }
 }
 
