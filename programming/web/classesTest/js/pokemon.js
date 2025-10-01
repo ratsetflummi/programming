@@ -7,16 +7,17 @@ document.addEventListener("DOMContentLoaded",async()=>{
     let playArea = document.getElementById("play-area");
     let playerPokemonArea = document.getElementById("player-pokemon");
     let enemyPokemonArea = document.getElementById("enemy-pokemon");
-    let movesArea = document.getElementById("moves");
+    let playerActionsArea = document.getElementById("player-actions");
     let textOutputArea = document.getElementById("text-output");
 
     document.getElementById("start-battle").addEventListener("click",async ()=>{
         let encounterTable = new EncounterTable({"common":["rattata","ekans"],"uncommon":["meowth","pikachu"]});
         let encounter = encounterTable.rollEncounter();
+        console.log(encounter);
         let pokemon = await Pokemon.create(await getApiData(["pokemon","pokemon-species"],encounter));
         pokemon.catch();
-
-        let battle = new Battle(pokemon,gameData.player,enemyPokemonArea,playerPokemonArea,movesArea,textOutputArea);
+        
+        let battle = new Battle(pokemon,gameData.player,enemyPokemonArea,playerPokemonArea,playerActionsArea,textOutputArea);
     });
     //let pokemonList = new PokemonList(await getApiData("pokemon"));
     
@@ -30,11 +31,12 @@ document.addEventListener("DOMContentLoaded",async()=>{
     
     gameData.player.inventory.addItem(await getApiData("item","exp-share"));
     
-    
-    gameData.player.team.addPokemon(await Pokemon.create(await getApiData(["pokemon","pokemon-species"],"turtwig")));
-    gameData.player.team.addPokemon(await Pokemon.create(await getApiData(["pokemon","pokemon-species"],"starly")));
-    gameData.player.team.addPokemon(await Pokemon.create(await getApiData(["pokemon","pokemon-species"],"glameow")));
-    gameData.player.team.addPokemon(await Pokemon.create(await getApiData(["pokemon","pokemon-species"],"seel")));
+
+    gameData.player.team.addPokemon(await createPokemonByName("turtwig"));
+    gameData.player.team.addPokemon(await createPokemonByName("starly"));
+    gameData.player.team.addPokemon(await createPokemonByName("glameow"));
+    gameData.player.team.addPokemon(await createPokemonByName("seel"));
+    gameData.player.team.addPokemon(await createPokemonByName("eevee"));
 
     // gameData.player.team.members[0].learnMove("tackle");
     // gameData.player.team.members[0].learnMove("double-slap");
@@ -42,11 +44,21 @@ document.addEventListener("DOMContentLoaded",async()=>{
     // gameData.player.team.members[0].learnMove("swords-dance");
     // gameData.player.team.members[0].learnMove("whirlwind");
     console.log(gameData.player);
-    gameData.player.team.members[0].levelUp();
+    gameData.player.team.members[0].learnMove("absorb");
 
 
     document.getElementById("start-battle").style.display = "block";
 })
+
+async function getPokemonDataByName(name) {
+    let data = await getApiData(["pokemon","pokemon-species"],name);
+    return data;
+}
+
+async function createPokemonByName(name) {
+    let pokemon = await Pokemon.create(await getPokemonDataByName(name));
+    return pokemon;
+}
 
 async function getApiData(type, identifier = "") {
     let data = {};
@@ -82,31 +94,41 @@ class Pokemon {
         this.ivs = this.generateIVs();
         this.moves = [];
         this.previousMoves = [];
+        this.experience = 0;
         this.domObjects = {
             "hpDiv": document.createElement("div"),
             "pokemonDiv": document.createElement("div"),
+            "spriteImage": document.createElement("img"),
         };
         this.gender = this.calculateGender();
         this.ability = null;
         this.nature = null;
         this.stats = null;
         this.currentHP = null;
+        this.canEvolve = false;
 
         for(let level = 0;level<=this.level;level++){
             this.learnLevelUpMoves(level);
         }
 
     }
-    static async create(pokemon_data, level = 5) {
-        const pokemon = new Pokemon(pokemon_data, level);
+    static async getApiData(pokemon){
+        console.log(pokemon);
         await pokemon.calculateAbility();
         await pokemon.calculateNature();
         await pokemon.calculateStats();
         await pokemon.calculateTypes();
+        await pokemon.getEvolutionChain();
+        await pokemon.getGrowthRate();
+    }
+    static async create(pokemon_data, level = 5) {
+        const pokemon = new Pokemon(pokemon_data, level);
+        await this.getApiData(pokemon);
+        pokemon.experience = pokemon.species.growth_rate.levels.find(level=>level.level == pokemon.level).experience;
         return pokemon;
     }
     catch(){
-        console.log(`trying to catch ${this.name}`);
+        console.log(`trying to catch ${this.getName()}`);
     }
     async learnMove(move_name){
         let move = new Move(await getApiData("move",move_name));
@@ -130,12 +152,14 @@ class Pokemon {
     showPokemon(parent){
         this.domObjects.pokemonDiv.innerHTML = "";
         let nameLabel = document.createElement("h3");
-        let image = document.createElement("img");
-        image.src = this.species.sprites.front_default
+        this.updateSprite();
         nameLabel.innerText = this.getName() + " - Lvl. " + this.level;
-        this.domObjects.pokemonDiv.appendChild(image);
+        this.domObjects.pokemonDiv.appendChild(this.domObjects.spriteImage);
         this.domObjects.pokemonDiv.appendChild(nameLabel);
         parent.appendChild(this.domObjects.pokemonDiv);
+    }
+    updateSprite(){
+        this.domObjects.spriteImage.src = this.species.sprites.front_default;
     }
     hidePokemon(){
         this.domObjects.pokemonDiv.remove();
@@ -156,12 +180,21 @@ class Pokemon {
             this.currentHP = 0;
         }
     }
+    heal(amount){
+        if(this.currentHP + amount < this.stats.hp){
+            this.currentHP += amount;
+        } else {
+            this.currentHP = this.stats.hp;
+        }
+    }
     levelUp(){
         this.level += 1;
         this.calculateStats();
         this.learnLevelUpMoves();
+        this.checkEvolution();
     }
     learnLevelUpMoves(level=this.level){
+        console.log(this);
         let moves = this.species.moves.filter(move =>
             move.version_group_details.some(
                 detail => detail.move_learn_method.name === "level-up" && detail.level_learned_at == level
@@ -229,6 +262,83 @@ class Pokemon {
         this.species.types.forEach(async type=>{
             type.type = await getApiData("type",type.type.name);
         })
+    }
+    async getEvolutionChain(){
+        let chainId = this.species.evolution_chain.url.replace("https://pokeapi.co/api/v2/evolution-chain/","")
+        this.species.evolution_chain = await getApiData("evolution-chain",chainId);
+    }
+    async getGrowthRate(){
+        this.species.growth_rate = await getApiData("growth-rate",this.species.growth_rate.name);
+    }
+    getDrops(enemy){
+        let exp = this.calculateEXP(this,enemy);
+        this.gainEXP(exp);
+    }
+    gainEXP(amount){
+        this.experience += amount;
+        this.checkLevelUp();
+        this.checkEvolution();
+    }
+    checkEvolution(){
+        if(this.level == 100){
+            return;
+        }
+        this.species.evolution_chain.chain.evolves_to.forEach(evolution=>{
+            let details = evolution.evolution_details[0];
+            console.log(details);
+            if(details.trigger.name == "level-up"){
+                if(this.level >= details.min_level){
+                    this.canEvolve = true;
+                    console.log(canEvolve);
+                } else {
+                    //TODO testing only
+                    this.canEvolve = true;
+                    console.log(this.level,details.min_level);
+                }
+            }
+        })
+    }
+    checkLevelUp(){
+        if(this.experience >= this.getExperienceToLevelUp()){
+            this.levelUp();
+        }
+    }
+    getExperienceToLevelUp(){
+        return this.species.growth_rate.levels.find(level=>level.level == this.level + 1).experience;
+    }
+    calculateEXP(attacker,defender){
+        let trainer = 1;
+        if(defender.owner != "wild"){
+            trainer = 1.5
+        }
+        let traded = 1;
+        if(attacker.isTraded()){
+            traded = 1.5;
+        }
+        let luckyEgg = 1;
+        if(attacker.hasItem("lucky-egg")){
+            luckyEgg = 1.5;
+        }
+        let exp = Math.round((trainer * defender.species.base_experience * traded * luckyEgg * defender.level)/7);
+        return(exp);
+    }
+    isTraded(){
+        console.log("calculate is traded");
+        return false;
+    }
+    hasItem(itemName){
+        console.log(`check if pokemon has ${itemName}`);
+        return false;
+    }
+    async startEvolve(evolutionName){
+        console.log("show ui to start evolution");
+        let evolutionName = "torterra";
+        this.evolve(await getPokemonDataByName(evolutionName));
+    }
+    async evolve(pokemonData){
+        this.species = new PokemonSpecies(pokemonData);
+        await Pokemon.getApiData(this);
+        this.updateSprite();
     }
 }
 
@@ -357,41 +467,24 @@ class Scene{
 }
 
 class Battle{
-    constructor(enemy,player,enemyPokemonDiv,playerPokemonDiv,moveDiv,textOutputDiv){
+    constructor(enemy,player,enemyPokemonDiv,playerPokemonDiv,playerActionDiv,textOutputDiv){
         this.enemy = enemy; 
         this.player = player;
         this.turn = "player";
         this.activePokemon = player.team.members[0];
-        this.domObjects = {
-            "enemyPokemonDiv": enemyPokemonDiv,
-            "playerPokemonDiv": playerPokemonDiv,
-            "moveDiv": moveDiv,
-            "textOutputDiv": textOutputDiv,
-        }
-        this.showEnemy();
+        this.battleUI = new BattleUI(this,enemyPokemonDiv,playerPokemonDiv,playerActionDiv,textOutputDiv);
+        
+        this.battleUI.showEnemy(enemy);
         this.enemy.updateHpBar();
-        this.enemy.showHpBar(this.domObjects.enemyPokemonDiv);
-        this.domObjects.playerPokemonDiv.innerHTML = "";
-        this.activePokemon.showPokemon(this.domObjects.playerPokemonDiv);
+        this.enemy.showHpBar(this.battleUI.domObjects.enemyPokemonDiv);
+        this.activePokemon.showPokemon(this.battleUI.domObjects.playerPokemonDiv);
         this.activePokemon.updateHpBar();
-        this.activePokemon.showHpBar(this.domObjects.playerPokemonDiv);
-        this.showMoves();
+        this.activePokemon.showHpBar(this.battleUI.domObjects.playerPokemonDiv);
         this.startTurn();
     }
-    showEnemy(){
-        this.domObjects.enemyPokemonDiv.innerHTML = "";
-        this.enemy.showPokemon(this.domObjects.enemyPokemonDiv);
-    }
-    showMoves(){
-        this.domObjects.moveDiv.innerHTML = "";
-        this.activePokemon.moves.forEach(move=>{
-            let button = document.createElement("button");
-            button.classList.add("move-button");
-            button.classList.add("battle-ui");
-            button.innerText = move.names.find(name=>name.language.name == language).name;
-            this.domObjects.moveDiv.appendChild(button);
-            button.addEventListener("click",()=>{this.useMove(this.activePokemon,this.enemy,move)})
-        })
+
+    flee(){
+        console.log("flee");
     }
     async calculateMoveDamage(attacker,defender,move,pondering=null){
         if(move.power == null){
@@ -405,7 +498,7 @@ class Battle{
             crit = 1.5;
             console.log(this.turn);
             console.log("it's a crit!");
-            await this.updateMessage(null,null,"move-crit");
+            await this.battleUI.updateMessage(null,null,"move-crit");
         }
         let damageClass = move.damage_class.name; 
         let attackStat = null;
@@ -447,7 +540,7 @@ class Battle{
         // formula taken from https://www.pokewiki.de/Schaden#Schadensberechnung
         
         let damage = Math.round(((attacker.level*(2/5)+2)*move.power*(attackStat/(50*defenseStat))*f1+2)*crit*f2*(random/100)*stab*vulnerability1*vulnerability2*f3);
-        
+        console.log(move,damage);
         return damage;
     }
     async useMove(attacker,defender,move){
@@ -455,7 +548,7 @@ class Battle{
             element.disabled = true;
         })
         
-        this.updateMessage(attacker,move,"move");
+        this.battleUI.updateMessage(attacker,move,"move");
         let repeats = 1;
         if(move.meta.max_hits){
             repeats = getRandomInRange(move.meta.min_hits,move.meta.max_hits);
@@ -465,10 +558,14 @@ class Battle{
             let damage = await this.calculateMoveDamage(attacker,defender,move);
             defender.lowerHp(damage);
             defender.updateHpBar();
+            if(move.meta.drain){
+                attacker.heal(Math.round(damage * (move.meta.drain)/100));
+                attacker.updateHpBar();
+            }
         }
         this.calculateMoveStatus(attacker,defender,move);
         this.changeTurn();
-        this.startTurn();
+        this.endTurn();
     }
     calculateMoveStatus(attacker,defender,move){
         console.log(attacker,defender,move);
@@ -476,9 +573,15 @@ class Battle{
     changeTurn(){
         this.turn = this.turn == "player" ? "enemy" : "player";
     }
-    startTurn(){
+    checkFaint(){
         if(this.enemy.currentHP == 0 || this.activePokemon.currentHP == 0){
             this.defeatPokemon();
+            return true;
+        }
+        return false;
+    }
+    startTurn(){
+        if(this.checkFaint()){
             return;
         }
         if(this.turn == "player"){
@@ -488,7 +591,15 @@ class Battle{
             this.startEnemyTurn();
         }
     }
+    endTurn(){
+        this.checkFaint();
+        if(this.activePokemon.canEvolve){
+            this.activePokemon.startEvolve();
+        }
+        this.startTurn();
+    }
     startPlayerTurn(){
+        this.battleUI.showActions();
         document.querySelectorAll(".battle-ui").forEach(element=>{
             element.disabled = false;
         })
@@ -515,10 +626,104 @@ class Battle{
         }
     }
     defeatPlayer(){
-        this.updateMessage(this.activePokemon,null,"faint");
+        this.battleUI.updateMessage(this.activePokemon,null,"faint");
     }
     defeatEnemy(){
-        this.updateMessage(this.enemy,null,"faint");
+        this.activePokemon.getDrops(this.enemy);
+        this.battleUI.updateMessage(this.enemy,null,"faint");
+    }
+}
+
+class BattleUI{
+    constructor(battle,enemyPokemonDiv,playerPokemonDiv,playerActionDiv,textOutputDiv){
+        this.battle = battle;
+        this.domObjects = {
+            "enemyPokemonDiv": enemyPokemonDiv,
+            "playerPokemonDiv": playerPokemonDiv,
+            "playerActionDiv": playerActionDiv,
+            "moveDiv": document.createElement("div"),
+            "actionDiv": document.createElement("div"),
+            "textOutputDiv": textOutputDiv,
+        }
+        this.fightActions = [
+            {
+                "action": "fight",
+                "names": {
+                    "en": "Fight",
+                    "de": "Kampf",
+                }
+            }, {
+                "action": "bag", "names": {
+                    "en": "Bag",
+                    "de": "Items",
+                }
+            }, {
+                "action": "pokemon", "names": {
+                    "en": "Pokemon",
+                    "de": "Pokemon",
+                }
+            }, {
+                "action": "flee", "names": {
+                    "en": "Flee",
+                    "de": "Flucht",
+                }
+            },
+        ];
+        this.domObjects.playerPokemonDiv.innerHTML = "";
+        this.showActions();
+    }
+    showEnemy(enemy){
+        this.domObjects.enemyPokemonDiv.innerHTML = "";
+        enemy.showPokemon(this.domObjects.enemyPokemonDiv);
+    }
+    showMoves(activePokemon){
+        this.domObjects.playerActionDiv.innerHTML = "";
+        this.domObjects.playerActionDiv.appendChild(this.domObjects.moveDiv);
+        this.domObjects.moveDiv.innerHTML = "";
+        activePokemon.moves.forEach(move=>{
+            let button = document.createElement("button");
+            button.classList.add("move-button");
+            button.classList.add("battle-ui");
+            button.innerText = move.names.find(name=>name.language.name == language).name;
+            this.domObjects.moveDiv.appendChild(button);
+            button.addEventListener("click",()=>{this.battle.useMove(activePokemon,this.battle.enemy,move)});
+        })
+    }    
+    showActions(){
+        this.domObjects.playerActionDiv.innerHTML = "";
+        this.domObjects.playerActionDiv.appendChild(this.domObjects.actionDiv);
+        this.domObjects.actionDiv.innerHTML = "";
+        this.fightActions.forEach(action=>{
+            let button = document.createElement("button");
+            button.classList.add("move-button");
+            button.classList.add("battle-ui");
+            button.innerText = action.names[language];
+            this.domObjects.actionDiv.appendChild(button);
+            button.addEventListener("click",()=>{this.doAction(action)});
+        })
+    }
+    lockActions(){
+        console.log("lock actions");
+    }
+    doAction(action){
+        if(action.action == "fight"){
+            this.showMoves(this.battle.activePokemon);
+        }
+        if(action.action == "bag"){
+            this.showBag();
+        }
+        if(action.action == "pokemon"){
+            this.showTeam();
+        }
+        if(action.action == "flee"){
+            this.battle.flee();
+        }
+    }
+    showBag(){
+        console.log("show bag");
+    }
+    showTeam(){
+        console.log("show team");
     }
     async updateMessage(subject,object,action){
         let message = this.getMessage(subject,object,action);
@@ -527,7 +732,7 @@ class Battle{
     }
     getMessage(subject,object,action){
         if(action == "move"){
-            let ownerPrefix = getOwnerPrefix(this.turn,subject.owner);
+            let ownerPrefix = getOwnerPrefix(this.battle.turn,subject.owner);
             let pokemonName = subject.getName();
             let moveName = object.getName();
             return `${ownerPrefix}${pokemonName} used ${moveName}.`;
@@ -536,12 +741,13 @@ class Battle{
             return "A critical hit!";
         }
         if(action == "faint"){
-            let ownerPrefix = getOwnerPrefix(this.turn,subject.owner);
+            let ownerPrefix = getOwnerPrefix(this.battle.turn,subject.owner);
             return `${ownerPrefix}${subject.getName()} fainted.`;
         }
 
 
         function getOwnerPrefix(turn,owner){
+            console.log(turn,owner);
             if(turn == "enemy"){
                 if(owner == "wild"){
                     return "Wild ";
@@ -577,7 +783,8 @@ class EncounterTable{
                 })
             }
         })
-        let chance = (Math.random() * encounterChances.length -1).toFixed(0); 
+        let chance = (Math.random() * encounterChances.length).toFixed(0); 
+        console.log(encounterChances.length,chance);
         return encounterChances[chance];
     }
 }
