@@ -30,6 +30,8 @@ document.addEventListener("DOMContentLoaded",async()=>{
 
     
     gameData.player.inventory.addItem(await getApiData("item","exp-share"));
+    gameData.player.inventory.addItem(await getApiData("item","poke-ball"));
+    gameData.player.inventory.addItem(await getApiData("item","great-ball"));
     
 
     gameData.player.team.addPokemon(await createPokemonByName("turtwig"));
@@ -85,8 +87,8 @@ async function getApiData(type, identifier = "") {
 
 
 class Pokemon {
-    constructor(pokemon_data,level=5,owner="wild"){
-        this.owner = owner;
+    constructor(pokemon_data,level=5){
+        this.owner = "wild";
         this.pid = Math.round(Math.random() * 4294967295);
         this.species = new PokemonSpecies(pokemon_data);
         this.level = level;
@@ -106,7 +108,7 @@ class Pokemon {
         this.stats = null;
         this.currentHP = null;
         this.canEvolve = false;
-
+        this.nickname = null;
         for(let level = 0;level<=this.level;level++){
             this.learnLevelUpMoves(level);
         }
@@ -124,11 +126,9 @@ class Pokemon {
     static async create(pokemon_data, level = 5) {
         const pokemon = new Pokemon(pokemon_data, level);
         await this.getApiData(pokemon);
+        pokemon.nickname = pokemon.getName();
         pokemon.experience = pokemon.species.growth_rate.levels.find(level=>level.level == pokemon.level).experience;
         return pokemon;
-    }
-    catch(){
-        console.log(`trying to catch ${this.getName()}`);
     }
     async learnMove(move_name){
         let move = new Move(await getApiData("move",move_name));
@@ -149,6 +149,12 @@ class Pokemon {
     getName(){
         return this.species.names.find(name=>name.language.name == language).name;
     }
+    getNickname(){
+        return this.nickname;
+    }
+    setNickname(name){
+        this.nickname = name;
+    }
     showPokemon(parent){
         this.domObjects.pokemonDiv.innerHTML = "";
         let nameLabel = document.createElement("h3");
@@ -157,6 +163,11 @@ class Pokemon {
         this.domObjects.pokemonDiv.appendChild(this.domObjects.spriteImage);
         this.domObjects.pokemonDiv.appendChild(nameLabel);
         parent.appendChild(this.domObjects.pokemonDiv);
+    }
+    showBattleSprite(parent){
+        this.showPokemon(parent);
+        this.updateHpBar();
+        this.showHpBar(parent);
     }
     updateSprite(){
         this.domObjects.spriteImage.src = this.species.sprites.front_default;
@@ -332,13 +343,21 @@ class Pokemon {
     }
     async startEvolve(evolutionName){
         console.log("show ui to start evolution");
-        let evolutionName = "torterra";
         this.evolve(await getPokemonDataByName(evolutionName));
     }
     async evolve(pokemonData){
         this.species = new PokemonSpecies(pokemonData);
         await Pokemon.getApiData(this);
         this.updateSprite();
+    }
+    catch(){
+        console.log(`trying to catch ${this.getName()}`);
+    }
+    setTrainer(trainer){
+        this.trainer = trainer;
+    }
+    getTrainer(){
+        return this.trainer;
     }
 }
 
@@ -387,20 +406,23 @@ class UltraBall extends Ball{
 
 class Player{
     constructor() {
-        this.team = new Team();
+        this.team = new Team(this);
         this.inventory = new Inventory();
+        this.ownedPokemon = [];
     }
 }
 
 class Team{
-    constructor(){
+    constructor(owner){
         this.members = [];
+        this.owner = owner;
     }
 
     addPokemon(pokemon){
         if(this.members.length < 6){
             this.members.push(pokemon);
         }
+        pokemon.owner = this.owner;
     };
 
     removePokemon(pokemonID){
@@ -475,11 +497,7 @@ class Battle{
         this.battleUI = new BattleUI(this,enemyPokemonDiv,playerPokemonDiv,playerActionDiv,textOutputDiv);
         
         this.battleUI.showEnemy(enemy);
-        this.enemy.updateHpBar();
-        this.enemy.showHpBar(this.battleUI.domObjects.enemyPokemonDiv);
-        this.activePokemon.showPokemon(this.battleUI.domObjects.playerPokemonDiv);
-        this.activePokemon.updateHpBar();
-        this.activePokemon.showHpBar(this.battleUI.domObjects.playerPokemonDiv);
+        this.activePokemon.showBattleSprite(this.battleUI.domObjects.playerPokemonDiv);
         this.startTurn();
     }
 
@@ -544,6 +562,7 @@ class Battle{
         return damage;
     }
     async useMove(attacker,defender,move){
+        console.log(this.turn,"attacking");
         document.querySelectorAll(".battle-ui").forEach(element=>{
             element.disabled = true;
         })
@@ -564,7 +583,6 @@ class Battle{
             }
         }
         this.calculateMoveStatus(attacker,defender,move);
-        this.changeTurn();
         this.endTurn();
     }
     calculateMoveStatus(attacker,defender,move){
@@ -594,8 +612,9 @@ class Battle{
     endTurn(){
         this.checkFaint();
         if(this.activePokemon.canEvolve){
-            this.activePokemon.startEvolve();
+            this.activePokemon.startEvolve("torterra");
         }
+        this.changeTurn();
         this.startTurn();
     }
     startPlayerTurn(){
@@ -605,18 +624,18 @@ class Battle{
         })
         console.log("start player turn");
     }
-    async startEnemyTurn(){
-        let bestMove = this.enemy.moves[getRandomInRange(0,this.enemy.moves.length-1)]
-        let bestMoveDamage = 0;
-        this.enemy.moves.forEach(async move=>{
-            let damage = await this.calculateMoveDamage(this.enemy,this.activePokemon,move,"pondering");
-            console.log(bestMove,bestMoveDamage,damage);
-            if(damage > bestMoveDamage){
+    async startEnemyTurn() {
+        let bestMove = null;
+        let bestMoveDamage = -Infinity;
+
+        for (const move of this.enemy.moves) {
+            let damage = await this.calculateMoveDamage(this.enemy, this.activePokemon, move, "pondering");
+            if (damage > bestMoveDamage) {
                 bestMove = move;
                 bestMoveDamage = damage;
             }
-        })
-        this.useMove(this.enemy,this.activePokemon,bestMove);
+        }
+        this.useMove(this.enemy, this.activePokemon, bestMove);
     }
     defeatPokemon(){
         if(this.activePokemon.currentHP == 0){
@@ -632,6 +651,11 @@ class Battle{
         this.activePokemon.getDrops(this.enemy);
         this.battleUI.updateMessage(this.enemy,null,"faint");
     }
+    setActivePokemon(pokemon){
+        this.activePokemon = pokemon;
+        this.battleUI.replacePlayerPokemonSprite(pokemon);
+        this.endTurn();
+    }
 }
 
 class BattleUI{
@@ -643,7 +667,9 @@ class BattleUI{
             "playerActionDiv": playerActionDiv,
             "moveDiv": document.createElement("div"),
             "actionDiv": document.createElement("div"),
+            "teamDiv": document.createElement("div"),
             "textOutputDiv": textOutputDiv,
+            "optionDiv": document.createElement("div"),
         }
         this.fightActions = [
             {
@@ -669,12 +695,26 @@ class BattleUI{
                 }
             },
         ];
+        this.pokemonActions = [
+            {
+                "action": "send",
+                "names": {
+                    "en": "Send out",
+                    "de": "Austauschen",
+                }
+            }, {
+                "action": "stats", "names": {
+                    "en": "Stats",
+                    "de": "Status",
+                }
+            },
+        ];
         this.domObjects.playerPokemonDiv.innerHTML = "";
         this.showActions();
     }
     showEnemy(enemy){
         this.domObjects.enemyPokemonDiv.innerHTML = "";
-        enemy.showPokemon(this.domObjects.enemyPokemonDiv);
+        enemy.showBattleSprite(this.domObjects.enemyPokemonDiv);
     }
     showMoves(activePokemon){
         this.domObjects.playerActionDiv.innerHTML = "";
@@ -723,7 +763,44 @@ class BattleUI{
         console.log("show bag");
     }
     showTeam(){
-        console.log("show team");
+        this.domObjects.playerActionDiv.innerHTML = "";
+        this.domObjects.playerActionDiv.appendChild(this.domObjects.teamDiv);
+        this.domObjects.teamDiv.innerHTML = "";
+        this.battle.player.team.members.forEach(teamMember=>{
+            let button = document.createElement("button");
+            button.classList.add("move-button");
+            button.classList.add("battle-ui");
+            button.innerText = teamMember.getName();
+            this.domObjects.teamDiv.appendChild(button);
+            button.addEventListener("click",()=>{
+                this.domObjects.optionDiv.innerHTML = "";
+                this.domObjects.playerActionDiv.appendChild(this.domObjects.optionDiv);
+                
+                this.pokemonActions.forEach(action=>{
+                    let button = document.createElement("button");
+                    button.classList.add("move-button");
+                    button.classList.add("battle-ui");
+                    button.innerText = action.names[language];
+                    this.domObjects.optionDiv.appendChild(button);
+                    button.addEventListener("click",()=>{this.pokemonAction(action,teamMember)});
+                })
+            })
+        })
+    }
+    async pokemonAction(action,pokemon){
+        console.log(action,pokemon);
+        if(action.action == "send"){
+            if(this.battle.activePokemon == pokemon){
+                console.log(this.battle.activePokemon,"is out already");
+                return;
+            }
+            this.battle.setActivePokemon(pokemon);
+            await this.updateMessage(this.battle.player,pokemon,"send");
+        }
+        if(action.action == "stats"){
+            console.log("see stats",pokemon);
+        }
+        
     }
     async updateMessage(subject,object,action){
         let message = this.getMessage(subject,object,action);
@@ -744,6 +821,11 @@ class BattleUI{
             let ownerPrefix = getOwnerPrefix(this.battle.turn,subject.owner);
             return `${ownerPrefix}${subject.getName()} fainted.`;
         }
+        if(action == "send"){
+            console.log(object.getNickname());
+            console.log(subject,object,action);
+            return `sent out ${object.getNickname()}`
+        }
 
 
         function getOwnerPrefix(turn,owner){
@@ -758,6 +840,10 @@ class BattleUI{
                 return "";
             }
         }
+    }
+    replacePlayerPokemonSprite(pokemon){
+        this.domObjects.playerPokemonDiv.innerHTML = "";
+        pokemon.showBattleSprite(this.domObjects.playerPokemonDiv);
     }
 }
 
@@ -783,7 +869,7 @@ class EncounterTable{
                 })
             }
         })
-        let chance = (Math.random() * encounterChances.length).toFixed(0); 
+        let chance = getRandomInRange(0,encounterChances.length-1); 
         console.log(encounterChances.length,chance);
         return encounterChances[chance];
     }
@@ -793,6 +879,9 @@ class EncounterTable{
 class Inventory{
     constructor(){
         this.items = [];
+        this.domObjects = {
+            "inventoryDiv": document.createElement("div"),
+        }
     }
     addItem(item,amount=1){
         let itemEntry = this.items.find(i=>i.item.id = item.id);
@@ -816,6 +905,13 @@ class Inventory{
         if(this.items.find(i=>i.item.id = item.id).amount == 0){
             console.log("empty");
         }
+    }
+    showInventory(parent){
+        parent.appendChild(this.domObjects.inventoryDiv);
+        this.domObjects.inventoryDiv.innerHTML = "";
+        this.items.forEach(item=>{
+            console.log(item);
+        })
     }
 }
 
