@@ -1,7 +1,38 @@
 import * as utils from "./utils.js";
 import {Cookies} from "./utils.js";
 let language = "en";
-document.addEventListener("DOMContentLoaded",async()=>{
+let pokemonList = []
+const generations = await (await fetch(`../data/generations.txt`)).json();
+for(const id in generations){
+    let generation = generations[id];
+    console.log(`../data/pokemon-${generation}.txt`);
+    let data = await (await fetch(`../data/pokemon-${generation}.txt`)).json();
+    pokemonList = pokemonList.concat(data);
+}
+console.log(generations);
+console.log(pokemonList);
+const growthRate =  await (await fetch(`../data/growth-rate.txt`)).json();
+const items =  await (await fetch(`../data/item.txt`)).json();
+const moves =  await (await fetch(`../data/move.txt`)).json();
+const natures =  await (await fetch(`../data/nature.txt`)).json();
+const types =  await (await fetch(`../data/type.txt`)).json();
+const abilitys =  await (await fetch(`../data/ability.txt`)).json();
+const evolutionChains =  await (await fetch(`../data/evolution-chain.txt`)).json();
+
+async function init(){
+    console.log("object");
+    console.log(canonData);
+    console.log(pokemonList);
+
+    
+    console.log("growthRate",growthRate);
+    console.log("items",items);
+    console.log("moves",moves);
+    console.log("natures",natures);
+    console.log("types",types);
+    console.log("abilitys",abilitys);
+    console.log("evolutionChains",evolutionChains);
+
     let gameData = new GameData();
     language = gameData.getLanguage();
     let playArea = document.getElementById("play-area");
@@ -13,13 +44,13 @@ document.addEventListener("DOMContentLoaded",async()=>{
     document.getElementById("start-battle").addEventListener("click",async ()=>{
         let encounterTable = new EncounterTable({"common":["rattata","ekans"],"uncommon":["meowth","pikachu"]});
         let encounter = encounterTable.rollEncounter();
-        console.log(encounter);
-        let pokemon = await Pokemon.create(await getApiData(["pokemon","pokemon-species"],encounter));
+        console.log("encounter",encounter);
+        let pokemon = new Pokemon(encounter);
         pokemon.catch();
         
         let battle = new Battle(pokemon,gameData.player,enemyPokemonArea,playerPokemonArea,playerActionsArea,textOutputArea);
     });
-    //let pokemonList = new PokemonList(await getApiData("pokemon"));
+    //let pokemonList = new PokemonList(canonData.getDataByName("pokemon"));
     
     let pokeball = new Ball();
     let greatBall = new GreatBall();
@@ -29,68 +60,74 @@ document.addEventListener("DOMContentLoaded",async()=>{
     ultraBall.throw();
 
     
-    gameData.player.inventory.addItem(await getApiData("item","exp-share"));
-    gameData.player.inventory.addItem(await getApiData("item","poke-ball"));
-    gameData.player.inventory.addItem(await getApiData("item","great-ball"));
+    gameData.player.inventory.addItem(canonData.getDataByName("item","exp-share"));
+    gameData.player.inventory.addItem(canonData.getDataByName("item","poke-ball"));
+    gameData.player.inventory.addItem(canonData.getDataByName("item","great-ball"));
     
+    console.log("turtwig");
+    gameData.player.team.addPokemon(new Pokemon("turtwig"));
+    gameData.player.team.addPokemon(new Pokemon("starly"));
+    gameData.player.team.addPokemon(new Pokemon("glameow"));
+    gameData.player.team.addPokemon(new Pokemon("seel"));
+    gameData.player.team.addPokemon(new Pokemon("eevee"));
 
-    gameData.player.team.addPokemon(await createPokemonByName("turtwig"));
-    gameData.player.team.addPokemon(await createPokemonByName("starly"));
-    gameData.player.team.addPokemon(await createPokemonByName("glameow"));
-    gameData.player.team.addPokemon(await createPokemonByName("seel"));
-    gameData.player.team.addPokemon(await createPokemonByName("eevee"));
-
-    // gameData.player.team.members[0].learnMove("tackle");
-    // gameData.player.team.members[0].learnMove("double-slap");
-    // gameData.player.team.members[0].learnMove("leer");
-    // gameData.player.team.members[0].learnMove("swords-dance");
-    // gameData.player.team.members[0].learnMove("whirlwind");
+    gameData.player.team.members[0].learnMove("tackle");
+    gameData.player.team.members[0].learnMove("double-slap");
+    gameData.player.team.members[0].learnMove("leer");
+    gameData.player.team.members[0].learnMove("swords-dance");
+    gameData.player.team.members[0].learnMove("whirlwind");
     console.log(gameData.player);
     gameData.player.team.members[0].learnMove("absorb");
 
 
     document.getElementById("start-battle").style.display = "block";
-})
-
-async function getPokemonDataByName(name) {
-    let data = await getApiData(["pokemon","pokemon-species"],name);
-    return data;
 }
 
-async function createPokemonByName(name) {
-    let pokemon = await Pokemon.create(await getPokemonDataByName(name));
-    return pokemon;
-}
-
-async function getApiData(type, identifier = "") {
-    let data = {};
-    if (typeof identifier === "string") {
-        identifier = [identifier];
-    }
-    if (typeof type === "string") {
-        type = [type];
-    }
-
-    for (const t of type) {
-        for (const id of identifier) {
-            let response = await fetch(`https://pokeapi.co/api/v2/${t}/${id}/?limit=100000&offset=0`);
-            if (!response.ok) {
-                console.log(identifier,"not found");
-                continue;
-            }
-            let response_data = await response.json();
-            Object.assign(data, response_data);
+class CanonData{
+    constructor(){
+        this.growthRate = growthRate;
+        this.items = items;
+        this.moves = moves;
+        this.natures = natures;
+        this.types = types;
+        this.abilitys = abilitys;
+        this.evolutionChains = evolutionChains;
+        this.pokemonList = pokemonList;
+        this.matching = {
+            "pokemon": this.pokemonList,
+            "item": this.items,
+            "move": this.moves,
+            "nature": this.natures,
+            "type": this.types,
+            "ability": this.abilitys,
+            "evolution-chain": this.evolutionChains,
         }
     }
+    getDataByName(type,name){
+        const baseData = this.matching[type];
+        console.log(type,name,baseData);
+        const returnData = baseData.find(data=>data.name == name);
+        if(returnData){
+            console.log("return");
+            console.log(returnData);
+            return returnData;
+        }
+        return false;
+    }
+}
+
+function getPokemonDataByName(name) {
+    let data = pokemonList.find(pokemon=>pokemon.name==name);
     return data;
 }
 
-
 class Pokemon {
-    constructor(pokemon_data,level=5){
+    constructor(name,level=5){
+        this.species = {};
+        console.log(canonData.getDataByName("pokemon",name));
+        Object.assign(this.species,canonData.getDataByName("pokemon",name));
         this.owner = "wild";
         this.pid = Math.round(Math.random() * 4294967295);
-        this.species = new PokemonSpecies(pokemon_data);
         this.level = level;
         this.evs = {"hp":0,"attack":0,"defense":0,"special-attack":0,"special-defense":0,"speed":0}
         this.ivs = this.generateIVs();
@@ -114,24 +151,23 @@ class Pokemon {
         }
 
     }
-    static async getApiData(pokemon){
-        console.log(pokemon);
-        await pokemon.calculateAbility();
-        await pokemon.calculateNature();
-        await pokemon.calculateStats();
-        await pokemon.calculateTypes();
-        await pokemon.getEvolutionChain();
-        await pokemon.getGrowthRate();
+    getData(pokemon){
+        this.calculateAbility();
+        this.calculateNature();
+        this.calculateStats();
+        this.calculateTypes();
+        this.getEvolutionChain();
+        this.getGrowthRate();
     }
     static async create(pokemon_data, level = 5) {
         const pokemon = new Pokemon(pokemon_data, level);
-        await this.getApiData(pokemon);
+        this.getApiData(pokemon);
         pokemon.nickname = pokemon.getName();
         pokemon.experience = pokemon.species.growth_rate.levels.find(level=>level.level == pokemon.level).experience;
         return pokemon;
     }
-    async learnMove(move_name){
-        let move = new Move(await getApiData("move",move_name));
+    learnMove(move_name){
+        let move = new Move(canonData.getDataByName("move",move_name));
         if(this.moves.length < 4){
             this.moves.push(move);
         } else if(this.owner == "wild"){
@@ -211,8 +247,8 @@ class Pokemon {
                 detail => detail.move_learn_method.name === "level-up" && detail.level_learned_at == level
             )
         )
-        moves.forEach(async move=>{
-            await this.learnMove(move.move.name);
+        moves.forEach(move=>{
+            this.learnMove(move.move.name);
         })
     }
     moves = [{version_group_details:[{move_learn_method:{name:"level-up"}}]}]
@@ -223,7 +259,7 @@ class Pokemon {
         })
         return ivs;
     }
-    async calculateStats(){
+    calculateStats(){
         let stats = {"hp":0,"attack":0,"defense":0,"special-attack":0,"special-defense":0,"speed":0};
         Object.keys(stats).forEach(key=>{
             let natureBonus = 1;
@@ -260,26 +296,26 @@ class Pokemon {
             return "male";
         }
     }
-    async calculateAbility(){
+    calculateAbility(){
         let unhiddenAbilities = this.species.abilities.filter(ability=>ability.is_hidden==false);
         let position = Math.round(this.pid/65536)%unhiddenAbilities.length;
-        this.ability = await getApiData("ability",unhiddenAbilities[position].ability.name);
+        this.ability = canonData.getDataByName("ability",unhiddenAbilities[position].ability.name);
     }
-    async calculateNature(){
+    calculateNature(){
         let natureId = ((this.pid % 25)+1).toString();
-        this.nature = await getApiData("nature",natureId);
+        this.nature = canonData.getDataByName("nature",natureId);
     }
-    async calculateTypes(){
+    calculateTypes(){
         this.species.types.forEach(async type=>{
-            type.type = await getApiData("type",type.type.name);
+            type.type = canonData.getDataByName("type",type.type.name);
         })
     }
-    async getEvolutionChain(){
+    getEvolutionChain(){
         let chainId = this.species.evolution_chain.url.replace("https://pokeapi.co/api/v2/evolution-chain/","")
-        this.species.evolution_chain = await getApiData("evolution-chain",chainId);
+        this.species.evolution_chain = canonData.getDataByName("evolution-chain",chainId);
     }
-    async getGrowthRate(){
-        this.species.growth_rate = await getApiData("growth-rate",this.species.growth_rate.name);
+    getGrowthRate(){
+        this.species.growth_rate = canonData.getDataByName("growth-rate",this.species.growth_rate.name);
     }
     getDrops(enemy){
         let exp = this.calculateEXP(this,enemy);
@@ -341,13 +377,13 @@ class Pokemon {
         console.log(`check if pokemon has ${itemName}`);
         return false;
     }
-    async startEvolve(evolutionName){
+    startEvolve(evolutionName){
         console.log("show ui to start evolution");
-        this.evolve(await getPokemonDataByName(evolutionName));
+        this.evolve(getPokemonDataByName(evolutionName));
     }
-    async evolve(pokemonData){
+    evolve(pokemonData){
         this.species = new PokemonSpecies(pokemonData);
-        await Pokemon.getApiData(this);
+        this.getApiData();
         this.updateSprite();
     }
     catch(){
@@ -871,6 +907,8 @@ class EncounterTable{
         })
         let chance = getRandomInRange(0,encounterChances.length-1); 
         console.log(encounterChances.length,chance);
+        console.log(encounterChances);
+        console.log(chance);
         return encounterChances[chance];
     }
 }
@@ -932,3 +970,8 @@ function getRandomInRange(min,max){
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+
+
+const canonData = new CanonData();
+init();
