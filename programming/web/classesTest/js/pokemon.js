@@ -59,10 +59,17 @@ async function init(){
     greatBall.throw();
     ultraBall.throw();
 
-    
-    gameData.player.inventory.addItem(canonData.getDataByName("item","exp-share"));
-    gameData.player.inventory.addItem(canonData.getDataByName("item","poke-ball"));
-    gameData.player.inventory.addItem(canonData.getDataByName("item","great-ball"));
+    console.log("-----------------------------------------------------------------------------");
+    gameData.player.inventory.addItem(new Item("exp-share"));
+    gameData.player.inventory.addItem(new Item("poke-ball"));
+    gameData.player.inventory.addItem(new Item("great-ball"));
+    gameData.player.inventory.addItem(new Item("potion"));
+    gameData.player.inventory.addItem(new Item("super-potion"));
+    gameData.player.inventory.addItem(new Item("hyper-potion"));
+    gameData.player.inventory.addItem(new Item("oran-berry"));
+    gameData.player.inventory.addItem(new Item("revive"));
+    gameData.player.inventory.addItem(new Item("full-heal"));
+    console.log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
     
     console.log("turtwig");
     gameData.player.team.addPokemon(new Pokemon("turtwig"));
@@ -71,16 +78,17 @@ async function init(){
     gameData.player.team.addPokemon(new Pokemon("seel"));
     gameData.player.team.addPokemon(new Pokemon("eevee"));
 
-    gameData.player.team.members[0].learnMove("tackle");
-    gameData.player.team.members[0].learnMove("double-slap");
-    gameData.player.team.members[0].learnMove("leer");
-    gameData.player.team.members[0].learnMove("swords-dance");
-    gameData.player.team.members[0].learnMove("whirlwind");
-    console.log(gameData.player);
-    gameData.player.team.members[0].learnMove("absorb");
+    // gameData.player.team.members[0].learnMove("tackle");
+    // gameData.player.team.members[0].learnMove("double-slap");
+    // gameData.player.team.members[0].learnMove("leer");
+    // gameData.player.team.members[0].learnMove("swords-dance");
+    // gameData.player.team.members[0].learnMove("whirlwind");
+    // console.log(gameData.player);
+    // gameData.player.team.members[0].learnMove("absorb");
 
 
     document.getElementById("start-battle").style.display = "block";
+    console.log(gameData.player.inventory);
 }
 
 class CanonData{
@@ -163,7 +171,7 @@ class Pokemon {
         }
         this.getData();
         this.nickname = this.getName();
-        this.experience = this.species.growth_rate.levels.find(level=>level.level == this.level).experience;
+        this.experience = 0;
 
     }
     getData(){
@@ -243,6 +251,9 @@ class Pokemon {
         }
     }
     levelUp(){
+        console.log(this.experience);
+        this.experience -= this.getExperienceToLevelUp();
+        console.log(this.experience);
         this.level += 1;
         this.calculateStats();
         this.learnLevelUpMoves();
@@ -347,13 +358,13 @@ class Pokemon {
                     console.log(canEvolve);
                 } else {
                     //TODO testing only
-                    this.canEvolve = true;
                     console.log(this.level,details.min_level);
                 }
             }
         })
     }
     checkLevelUp(){
+        console.log(this.experience,this.getExperienceToLevelUp());
         if(this.experience >= this.getExperienceToLevelUp()){
             this.levelUp();
         }
@@ -537,7 +548,7 @@ class Battle{
         this.enemy = enemy; 
         this.player = player;
         this.turn = "player";
-        this.activePokemon = player.team.members[0];
+        this.activePokemon = player.team.members.filter(member=>member.currentHP > 0)[0];
         this.battleUI = new BattleUI(this,enemyPokemonDiv,playerPokemonDiv,playerActionDiv,textOutputDiv);
         
         this.battleUI.showEnemy(enemy);
@@ -714,7 +725,12 @@ class BattleUI{
             "teamDiv": document.createElement("div"),
             "textOutputDiv": textOutputDiv,
             "optionDiv": document.createElement("div"),
+            "statDiv": document.createElement("div"),
+            "bagDiv": document.createElement("div"),
+            "backToActionsButton": document.createElement("button"),
         }
+        this.domObjects.backToActionsButton.addEventListener("click",()=>{this.showActions()});
+        this.domObjects.backToActionsButton.innerText = "Back";
         this.fightActions = [
             {
                 "action": "fight",
@@ -753,6 +769,44 @@ class BattleUI{
                 }
             },
         ];
+        this.statNames = {
+            "hp":
+            {"names":{
+                "en": "HP",
+                "de": "HP",
+                }
+            },
+            "attack":
+            {"names":{
+                "en": "Attack",
+                "de": "Angriff",
+                }
+            },
+            "defense":
+            {"names":{
+                "en": "Defense",
+                "de": "Verteidigung",
+                }
+            },
+            "special-attack":
+            {"names":{
+                "en": "Special Attack",
+                "de": "Spezialangriff",
+                }
+            },
+            "special-defense":
+            {"names":{
+                "en": "Special Defense",
+                "de": "Spezialverteidigung",
+                }
+            },
+            "speed":
+            {"names":{
+                "en": "Speed",
+                "de": "Initiative",
+                }
+            },
+        }
         this.domObjects.playerPokemonDiv.innerHTML = "";
         this.showActions();
     }
@@ -804,7 +858,23 @@ class BattleUI{
         }
     }
     showBag(){
+        this.domObjects.playerActionDiv.innerHTML = "";
+        this.domObjects.playerActionDiv.appendChild(this.domObjects.bagDiv);
         console.log("show bag");
+        console.log(this.battle.player.inventory);
+        this.battle.player.inventory.items.forEach(item=>{
+            console.log(item);
+            if(!item.item.hasAttribute("usable-in-battle")){
+                return;
+            }
+            let button = document.createElement("button");
+            button.innerText = item.item.getName();
+            this.domObjects.bagDiv.appendChild(button);
+            button.addEventListener("click",()=>{
+                item.item.useItem(this);
+                console.log(item.amount,item.item);
+            })
+        })
     }
     showTeam(){
         this.domObjects.playerActionDiv.innerHTML = "";
@@ -831,6 +901,20 @@ class BattleUI{
             })
         })
     }
+    showTeamSelect(caller){
+        console.log("caller",caller);
+        this.domObjects.playerActionDiv.innerHTML = "";
+        this.domObjects.playerActionDiv.appendChild(this.domObjects.teamDiv);
+        this.domObjects.teamDiv.innerHTML = "";
+        this.battle.player.team.members.forEach(teamMember=>{
+            let button = document.createElement("button");
+            button.innerText = teamMember.getName();
+            this.domObjects.teamDiv.appendChild(button);
+            button.addEventListener("click",()=>{
+                caller.teamSelectAction(teamMember);
+            })
+        })
+    }
     async pokemonAction(action,pokemon){
         console.log(action,pokemon);
         if(action.action == "send"){
@@ -842,7 +926,19 @@ class BattleUI{
             await this.updateMessage(this.battle.player,pokemon,"send");
         }
         if(action.action == "stats"){
-            console.log("see stats",pokemon);
+            this.domObjects.statDiv.innerHTML = "";
+            this.domObjects.playerActionDiv.innerHTML = "";
+            this.domObjects.playerActionDiv.appendChild(this.domObjects.statDiv);
+            for(const stat in pokemon.stats){
+                let statName = this.statNames[stat]["names"][language];
+                console.log(stat);
+                let hpMod = "";
+                if(stat == "hp"){
+                    hpMod = `${pokemon.currentHP}/`;
+                }
+                this.domObjects.statDiv.innerHTML += `${statName}: ${hpMod}${pokemon.stats[stat]}<br>`;
+            }
+            this.drawBackToActionsButton();
         }
         
     }
@@ -889,6 +985,9 @@ class BattleUI{
         this.domObjects.playerPokemonDiv.innerHTML = "";
         pokemon.showBattleSprite(this.domObjects.playerPokemonDiv);
     }
+    drawBackToActionsButton(){
+        this.domObjects.playerActionDiv.appendChild(this.domObjects.backToActionsButton);
+    }
 }
 
 class EncounterTable{
@@ -921,6 +1020,37 @@ class EncounterTable{
     }
 }
 
+class Item{
+    constructor(itemName){
+        Object.assign(this,canonData.getDataByName("item",itemName));
+    }
+    getName(){
+        return this.names.find(name=>name.language.name == language).name;
+    }
+    useItem(battleUi){
+        console.log(battleUi.length);
+        console.log(this);
+        console.log(battleUi);
+        if(this.category.name == "healing"){
+            battleUi.showTeamSelect(this);
+        }
+
+    }
+    teamSelectAction(pokemon){
+        console.log(this);
+        console.log(pokemon);
+        this.useItemOnSelectedPokemon(pokemon);
+    }
+    useItemOnSelectedPokemon(pokemon){
+        if(this.category.name == "healing"){
+            console.log("healing",pokemon);
+        }
+    }
+    hasAttribute(attribute){
+        return this.attributes.map(entry=>entry.name).includes(attribute);
+    }
+}
+
 
 class Inventory{
     constructor(){
@@ -930,7 +1060,7 @@ class Inventory{
         }
     }
     addItem(item,amount=1){
-        let itemEntry = this.items.find(i=>i.item.id = item.id);
+        let itemEntry = this.items.find(i=>i.item.id == item.id);
         if(itemEntry){
             itemEntry.amount += amount;
         } else {
