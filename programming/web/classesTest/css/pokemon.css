@@ -1,0 +1,26 @@
+
+#enemy-pokemon{
+    background-color: rgb(196, 131, 131);
+    padding: 20px;
+}
+
+#player-pokemon{
+    background-color: lightblue;
+    padding: 20px;
+}
+
+#player-actions{
+    background-color: lightgrey;
+    border: black 1px solid;
+    border-radius: 15px;
+    margin-top: 15px;
+    padding: 5px;
+}
+
+#text-output{
+    background-color: beige;
+    border: black 1px solid;
+    border-radius: 15px;
+    margin-top: 15px;
+    padding: 5px;
+}
