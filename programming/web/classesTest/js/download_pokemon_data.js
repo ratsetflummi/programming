@@ -66,9 +66,9 @@ const generations = [];
 for(const id in pokemonList){
     let pokemon = pokemonList[id];
     let speciesData = pokemonSpecies.find(species=> species.id == pokemon.id);
-    Object.assign(pokemon["species"],speciesData);
+    Object.assign(pokemon,speciesData);
     fullPokemon.push(pokemon);
-    let generation = pokemon["species"]["generation"];
+    let generation = pokemon["generation"];
     if(generation){
         generation = generation["name"]
         if(!generations.includes(generation)){

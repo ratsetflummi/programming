@@ -101,12 +101,24 @@ class CanonData{
             "type": this.types,
             "ability": this.abilitys,
             "evolution-chain": this.evolutionChains,
+            "growth-rate": this.growthRate,
         }
     }
     getDataByName(type,name){
         const baseData = this.matching[type];
         console.log(type,name,baseData);
         const returnData = baseData.find(data=>data.name == name);
+        if(returnData){
+            console.log("return");
+            console.log(returnData);
+            return returnData;
+        }
+        return false;
+    }
+    getDataById(type,id){
+        const baseData = this.matching[type];
+        console.log(type,id,baseData);
+        const returnData = baseData.find(data=>data.id == id);
         if(returnData){
             console.log("return");
             console.log(returnData);
@@ -149,22 +161,18 @@ class Pokemon {
         for(let level = 0;level<=this.level;level++){
             this.learnLevelUpMoves(level);
         }
+        this.getData();
+        this.nickname = this.getName();
+        this.experience = this.species.growth_rate.levels.find(level=>level.level == this.level).experience;
 
     }
-    getData(pokemon){
+    getData(){
         this.calculateAbility();
         this.calculateNature();
         this.calculateStats();
         this.calculateTypes();
         this.getEvolutionChain();
         this.getGrowthRate();
-    }
-    static async create(pokemon_data, level = 5) {
-        const pokemon = new Pokemon(pokemon_data, level);
-        this.getApiData(pokemon);
-        pokemon.nickname = pokemon.getName();
-        pokemon.experience = pokemon.species.growth_rate.levels.find(level=>level.level == pokemon.level).experience;
-        return pokemon;
     }
     learnMove(move_name){
         let move = new Move(canonData.getDataByName("move",move_name));
@@ -311,8 +319,8 @@ class Pokemon {
         })
     }
     getEvolutionChain(){
-        let chainId = this.species.evolution_chain.url.replace("https://pokeapi.co/api/v2/evolution-chain/","")
-        this.species.evolution_chain = canonData.getDataByName("evolution-chain",chainId);
+        let chainId = this.species.evolution_chain.url.replace("https://pokeapi.co/api/v2/evolution-chain/","").replace("/","");
+        this.species.evolution_chain = canonData.getDataById("evolution-chain",chainId);
     }
     getGrowthRate(){
         this.species.growth_rate = canonData.getDataByName("growth-rate",this.species.growth_rate.name);
@@ -383,7 +391,7 @@ class Pokemon {
     }
     evolve(pokemonData){
         this.species = new PokemonSpecies(pokemonData);
-        this.getApiData();
+        this.getData();
         this.updateSprite();
     }
     catch(){
