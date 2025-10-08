@@ -33,3 +33,19 @@ export class Cookies {
         };
     }
 }
+
+async function concatPokemonGenerations(){
+    let pokemonList = [];
+    const generations = await (await fetch(`../data/generations.txt`)).json();
+    for(const id in generations){
+        let generation = generations[id];
+        console.log(`../data/pokemon-${generation}.txt`);
+        let data = await (await fetch(`../data/pokemon-${generation}.txt`)).json();
+        pokemonList = pokemonList.concat(data);
+    }
+    console.log(generations);
+}
+
+export{
+    concatPokemonGenerations,
+}

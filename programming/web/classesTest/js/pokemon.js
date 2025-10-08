@@ -1,31 +1,26 @@
 import * as utils from "./utils.js";
 import {Cookies} from "./utils.js";
-let language = "en";
-let pokemonList = []
-const generations = await (await fetch(`../data/generations.txt`)).json();
-for(const id in generations){
-    let generation = generations[id];
-    console.log(`../data/pokemon-${generation}.txt`);
-    let data = await (await fetch(`../data/pokemon-${generation}.txt`)).json();
-    pokemonList = pokemonList.concat(data);
-}
-console.log(generations);
-console.log(pokemonList);
-const growthRate =  await (await fetch(`../data/growth-rate.txt`)).json();
-const items =  await (await fetch(`../data/item.txt`)).json();
-const moves =  await (await fetch(`../data/move.txt`)).json();
-const natures =  await (await fetch(`../data/nature.txt`)).json();
-const types =  await (await fetch(`../data/type.txt`)).json();
-const abilitys =  await (await fetch(`../data/ability.txt`)).json();
-const evolutionChains =  await (await fetch(`../data/evolution-chain.txt`)).json();
+import * as download_pokemon_data from "./download_pokemon_data.js";
 
+let language = "en";
+const pokemonList = await utils.concatPokemonGenerations();
+console.log(pokemonList);
+const growthRates = await (await fetch(`../data/growthRate.txt`)).json();
+const items = await (await fetch(`../data/item.txt`)).json();
+const moves = await (await fetch(`../data/move.txt`)).json();
+const natures = await (await fetch(`../data/nature.txt`)).json();
+const types = await (await fetch(`../data/type.txt`)).json();
+const abilitys = await (await fetch(`../data/ability.txt`)).json();
+const evolutionChains = await (await fetch(`../data/evolutionChain.txt`)).json();
+
+document.querySelector("#download_pokemon_data").addEventListener("click",download_pokemon_data.downloadPokemonData);
 async function init(){
     console.log("object");
     console.log(canonData);
     console.log(pokemonList);
 
     
-    console.log("growthRate",growthRate);
+    console.log("growthRates",growthRates);
     console.log("items",items);
     console.log("moves",moves);
     console.log("natures",natures);
@@ -93,7 +88,8 @@ async function init(){
 
 class CanonData{
     constructor(){
-        this.growthRate = growthRate;
+        this.fetchData();
+        this.growthRates = growthRates;
         this.items = items;
         this.moves = moves;
         this.natures = natures;
@@ -109,7 +105,14 @@ class CanonData{
             "type": this.types,
             "ability": this.abilitys,
             "evolution-chain": this.evolutionChains,
-            "growth-rate": this.growthRate,
+            "growth-rate": this.growthRates,
+        }
+    }
+    async fetchData(){
+        let fileNames = await (await fetch("../data/fileNames.txt")).json();
+        for(const fileId in fileNames){
+            const fileName = fileNames[fileId];
+            console.log(fileName);
         }
     }
     getDataByName(type,name){
@@ -1044,6 +1047,7 @@ class Item{
     useItemOnSelectedPokemon(pokemon){
         if(this.category.name == "healing"){
             console.log("healing",pokemon);
+            console.log("with",this);
         }
     }
     hasAttribute(attribute){
