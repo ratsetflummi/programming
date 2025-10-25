@@ -1,6 +1,5 @@
 function test() {
     console.log("utils test");
-    openNewForm("add-character-form");
 }
 
 modalInit();
@@ -24,7 +23,19 @@ function closeModal(){
     modal.style.display = "none";
 }
 
+function setModalBackButton(method){
+    removeModalBackButton();
+    const span = document.getElementById("myModal").querySelector(".back");
+    const button = appendButton("←",span,method);
+}
+
+function removeModalBackButton(){
+    const span = document.getElementById("myModal").querySelector(".back");
+    span.innerHTML = "";
+}
+
 function openNewForm(formId) {
+    removeModalBackButton();
     let form = document.getElementById(formId);
     if (!form) {
         return;
@@ -34,7 +45,7 @@ function openNewForm(formId) {
     let modalContent = document.getElementById("modal-content");
     modal.style.display = "block";
     for (const child of modalContent.children) {
-        if (child.classList.contains("close")) {
+        if (child.classList.contains("close") || child.classList.contains("back")) {
             continue;
         }
         child.style.display = "none";
@@ -129,9 +140,29 @@ class Color {
     }
 }
 
+function makeButton(text,method=null){
+    const button = document.createElement("button");
+    button.type = "button";
+    button.innerText = text;
+    if(method){
+        button.addEventListener("click",method);
+    }
+    return button;
+}
+
+function appendButton(text,parent,method=null){
+    const button = makeButton(text,method);
+    parent.appendChild(button);
+    return button;
+}
+
 export {
     test,
     Color,
     openNewForm,
     closeModal,
+    makeButton,
+    appendButton,
+    setModalBackButton,
+    removeModalBackButton,
 }

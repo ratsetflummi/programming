@@ -51,6 +51,9 @@ class GameData {
         this.chapters.push(chapter);
         return chapter;
     }
+    getCharacterByName(name){
+        return this.characters.find(c=>c.name == name);
+    }
     getCharacters(){
         return this.characters;
     }
@@ -70,20 +73,25 @@ class DevTools {
         this.toolbar.innerHTML = "";
         this.sceneDiv = document.createElement("div");
         this.scenePreview = document.createElement("div");
-        this.sceneAddButton = document.createElement("button");
         this.sceneSelect = document.createElement("select");
         this.chapterDiv = document.createElement("div");
         this.chapterPreview = document.createElement("div");
-        this.chapterAddButton = document.createElement("button");
         this.chapterSelect = document.createElement("select");
         this.characterDiv = document.createElement("div");
         this.characterPreview = document.createElement("div");
-        this.characterAddButton = document.createElement("button");
         this.characterSelect = document.createElement("select");
         this.frameDiv = document.createElement("div");
         this.framePreview = document.createElement("div");
         this.frameAddButton = document.createElement("button");
         this.frameSelect = document.createElement("select");
+        this.frameForm = document.getElementById("add-frame-form");
+        this.frameForm.querySelectorAll(".save").forEach(button=>button.remove());
+        this.frameSaveButton = document.createElement("button");
+        this.frameSaveButton.innerText = "Save";
+        this.frameSaveButton.classList.add("save");
+        this.frameSaveButton.type = "button";
+        this.frameForm.appendChild(this.frameSaveButton);
+        this.frameSaveButton.addEventListener("click",()=>{this.addFrame()});
 
 
         setSaveAndLoad(this.gameData);
@@ -103,32 +111,27 @@ class DevTools {
 
     setFrameFunctions(){
         this.frameDiv.innerHTML = "";
-        this.framePreview.id = "frame-preview";
-        this.frameForm = document.getElementById("add-frame-form");
-        this.frameSaveButton = this.frameForm.querySelector(".save");
-        this.frameAddButton.innerText = "New Frame";
-        this.frameDiv.appendChild(this.frameAddButton);
-        this.frameAddButton.addEventListener("click", this.openFrameForm);
+        this.frameAddButton = utils.appendButton("New Frame",this.frameDiv,()=>{this.openFrameForm()});
 
         this.frameDiv.appendChild(this.frameSelect);
         this.frameDiv.appendChild(this.framePreview);
-        for(const frame of this.selectedChapter.getFrames()){
+        this.frameSelect.innerHTML = "";
+        for(const frame of this.selectedScene.getFrames()){
             this.addFrameOption(frame);
         }
-        this.frameSaveButton.addEventListener("click",()=>this.addFrame())
     }
     setSceneFunctions(){
         this.sceneDiv.innerHTML = "";
+        this.sceneAddButton = utils.appendButton("New Scene",this.sceneDiv,()=>this.openSceneForm());
+        this.sceneSelect.innerHTML = "";
         this.scenePreview.id = "scene-preview";
         this.sceneForm = document.getElementById("add-scene-form");
         this.sceneSaveButton = this.sceneForm.querySelector(".save");
-        this.sceneAddButton.innerText = "New Scene";
-        this.sceneDiv.appendChild(this.sceneAddButton);
-        this.sceneAddButton.addEventListener("click", this.openSceneForm);
 
         this.sceneDiv.appendChild(this.sceneSelect);
         this.sceneDiv.appendChild(this.scenePreview);
         for(const scene of this.selectedChapter.getScenes()){
+            this.showScenePreview(scene);
             this.addSceneOption(scene);
         }
         this.sceneSaveButton.addEventListener("click",()=>this.addScene())
@@ -137,12 +140,9 @@ class DevTools {
 
     setChapterFunctions(){
         this.chapterDiv.innerHTML = "";
-        this.chapterPreview.id = "chapter-preview";
+        this.chapterAddButton = utils.appendButton("New Chapter",this.chapterDiv,this.openChapterForm);
         this.chapterForm = document.getElementById("add-chapter-form");
         this.chapterSaveButton = this.chapterForm.querySelector(".save");
-        this.chapterAddButton.innerText = "New Chapter";
-        this.chapterDiv.appendChild(this.chapterAddButton);
-        this.chapterAddButton.addEventListener("click", this.openChapterForm);
 
         this.chapterDiv.appendChild(this.chapterSelect);
         this.chapterDiv.appendChild(this.chapterPreview);
@@ -155,12 +155,29 @@ class DevTools {
 
     setCharacterFunctions(){
         this.characterDiv.innerHTML = "";
-        this.characterPreview.id = "character-preview";
-        this.characterForm = document.getElementById("add-character-form");
+        this.characterAddButton = utils.appendButton("New Character",this.characterDiv,this.openCharacterForm);
+        this.characterForm = document.getElementById("form");
+
+        this.characterForm.innerHTML = `
+                <h3>New Character</h3>
+                <p>
+                    <label for="name">Name</label>
+                    <input id="name" type="text">
+                </p>
+                <p>
+                    <label for="color">Color</label>
+                    <input id="color" type="color" value="#acacac">
+                </p>
+                <p>
+                    <label for="image">Image Name (with extension)</label>
+                    <input id="image" type="text" placeholder="sample-image.png">
+                </p>
+                <p>
+                    <button type="button" class="save">Save</button>
+                </p>
+        `
+
         this.characterSaveButton = this.characterForm.querySelector(".save");
-        this.characterAddButton.innerText = "New Character";
-        this.characterDiv.appendChild(this.characterAddButton);
-        this.characterAddButton.addEventListener("click", this.openCharacterForm);
 
         this.characterDiv.appendChild(this.characterSelect);
         this.characterDiv.appendChild(this.characterPreview);
@@ -185,7 +202,7 @@ class DevTools {
     }
     addSceneOption(scene){
         const option = document.createElement("option");
-        option.addEventListener("click",()=>this.showScenePreview(scene));
+        option.addEventListener("click",()=>{this.showScenePreview(scene)});
         option.innerText = scene.getName();
         this.sceneSelect.appendChild(option);
     }
@@ -200,6 +217,8 @@ class DevTools {
 
     showScenePreview(scene){
         this.selectedScene = scene;
+        console.log(this);
+        this.setFrameFunctions();
         console.log("get a scene select here for ",scene);
     }
 
@@ -217,11 +236,21 @@ class DevTools {
 
     addFrame(){
         utils.closeModal();
-        this.addFrameOption(this.selectedChapter.addFrame());
+        console.log(this);
+        this.addFrameOption(this.selectedScene.addFrame());
     }
 
     showFramePreview(frame){
         this.selectedFrame = frame;
+        this.framePreview.innerHTML = "";
+        frame.showFramePreview(this.framePreview);
+        let editButton = document.createElement("button");
+        editButton.innerText = "Edit";
+        editButton.type = "button";
+        this.framePreview.appendChild(editButton);
+        editButton.addEventListener("click",()=>{
+            frame.openEditForm();
+        })
         console.log("get a frame select here for ",frame);
     }
 
@@ -331,7 +360,8 @@ class Scene{
         this.frames = [];
         this.name = name;
         this.number = number;
-        this.frameCount
+        this.backgroundImage;
+        this.frameCount = 0;
     }
     static addScene(number){
         const form = document.getElementById("add-scene-form");
@@ -343,15 +373,29 @@ class Scene{
         const newScene = new Scene(scene.name,scene.number);
         newScene.frames = [];
         for(const frame of scene.frames){
-            newScene.frames.push(Frame.loadFrame(frame));
+            if(frame.type == "choice"){
+                newScene.frames.push(Choice.loadFrame(frame));
+            } else if(frame.type == "dialogue"){
+                newScene.frames.push(Dialogue.loadFrame(frame));
+            }
         }
         return newScene;
     }
     addFrame() {
-        const frame = Frame.addFrame(this.frameCount);
+        const type = document.getElementById("add-frame-form").querySelector("#type").value;
+        let frame;
+        if(type == "choice"){
+            frame  = Choice.addFrame(this.frameCount);
+        } else if(type == "dialogue"){
+            frame  = Dialogue.addFrame(this.frameCount);
+        }
+        
         this.frameCount++;
         this.frames.push(frame);
         return frame;
+    }
+    setBackgroundImage(image){
+        this.backgroundImage = image;
     }
     getFrames(){
         return this.frames;
@@ -363,7 +407,23 @@ class Scene{
 class Frame{
     constructor(number){
         this.number = number;
-        this.frameCount = 0;
+    }
+    openEditTextForm(){
+        const form = utils.openNewForm("edit-dialogue-form");
+        form.innerHTML = "<h3>Edit Text</h3>";
+        utils.setModalBackButton(()=>{this.openEditForm()});
+        let textField = document.createElement("textarea");
+        if(this.text){
+            textField.value = this.text;
+        }
+        form.appendChild(textField);
+        let button = document.createElement("button");
+        button.type = "button";
+        button.innerText = "Save";
+        button.addEventListener("click",()=>{
+            this.text = textField.value;
+        })
+        form.appendChild(button);
     }
     getName(){return this.number;}
 }
@@ -371,35 +431,198 @@ class Frame{
 class Choice extends Frame{
     constructor(number){
         super(number);
+        this.type = "choice";
+        this.text;
+        this.options = [];
     }
     static addFrame(number){
         return new Choice(number);
     }
     static loadFrame(frame){
-        return new Choice(frame.number);
+        const newFrame = new Choice(frame.number);
+        newFrame.options = frame.options;
+        newFrame.text = frame.text;
+        return newFrame;
+    }
+    addText(text){
+        this.text = text;
+    }
+    addOption(text,effects){
+        this.options.push({"text":text,"effects":effects});
+    }
+    showFramePreview(previewDiv){
+        const div = document.createElement("div");
+        previewDiv.appendChild(div);
+
+        div.innerText = this.text || "!!!";
+    }
+    openEditForm(){
+        const form = utils.openNewForm("edit-choice-form");
+        form.innerHTML = "<h3>Edit Choice</h3>";
+        this.showDetailedOverview(form);  
+        const textButton = document.createElement("button");
+        form.appendChild(textButton);
+        textButton.type = "button";
+        textButton.innerText = "Edit Text";
+        textButton.addEventListener("click",()=>{this.openEditTextForm()});
+        const optionButton = document.createElement("button");
+        form.appendChild(optionButton);
+        optionButton.type = "button";
+        optionButton.innerText = "Edit Options";
+        optionButton.addEventListener("click",()=>{this.openEditOptionsForm()});
+    }
+    showDetailedOverview(parent){
+        if(this.text){
+            const textDiv = document.createElement("div");
+            textDiv.innerText = this.text;
+            parent.appendChild(textDiv);
+        }
+        if(this.options){
+            for(const option of this.options){
+                const div = document.createElement("div");
+                div.innerText = JSON.stringify(option);
+                parent.appendChild(div);
+            }
+        }
+    }
+    openEditOptionsForm(){
+        console.log("edit options");
     }
 }
 
 class Dialogue extends Frame{
     constructor(number){
         super(number);
+        this.type = "dialogue";
+        this.characters = [];
+        this.speaker;
+        this.text;
     }
     static addFrame(number){
         return new Dialogue(number);
     }
     static loadFrame(frame){
-        return new Dialogue(frame.number);
+        const newFrame = new Dialogue(frame.number);
+        newFrame.speaker = frame.speaker;
+        newFrame.text = frame.text;
+        if(!frame.characters){
+            return newFrame;
+        }
+        for(const character in  frame.characters){
+            newFrame.characters.push(Character.loadCharacter(character));
+        }
+        return newFrame;
+    }
+    showFramePreview(previewDiv){
+        const div = document.createElement("div");
+        previewDiv.appendChild(div);
+        if(this.speaker){
+            div.innerText = `Speaker: ${this.speaker.getName()}`;
+        }
+    }
+    addSpeaker(character){
+        this.speaker = character;
+    }
+    addCharacter(character){
+        this.characters.push(character);
+    }
+    addText(text){
+        this.text = text;
+    }
+    openEditForm(){
+        const form = utils.openNewForm("edit-dialogue-form");
+        form.innerHTML = "<h3>Edit Dialogue</h3>";
+        this.showDetailedOverview(form);  
+        const textButton = document.createElement("button");
+        form.appendChild(textButton);
+        textButton.type = "button";
+        textButton.innerText = "Edit Text";
+        textButton.addEventListener("click",()=>{this.openEditTextForm()});
+        const charactersButton = document.createElement("button");
+        form.appendChild(charactersButton);
+        charactersButton.type = "button";
+        charactersButton.innerText = "Edit Characters";
+        charactersButton.addEventListener("click",()=>{this.openEditCharactersForm()}); 
+        const speakerButton = document.createElement("button");
+        form.appendChild(speakerButton);
+        speakerButton.type = "button";
+        speakerButton.innerText = "Edit Speaker";
+        speakerButton.addEventListener("click",()=>{this.openEditSpeakerForm()}); 
+    }
+    showDetailedOverview(parent){
+        if(this.text){
+            const textDiv = document.createElement("div");
+            textDiv.innerText = this.text;
+            parent.appendChild(textDiv);
+        }
+        if(this.speaker){
+            const speakerDiv = document.createElement("div");
+            speakerDiv.innerText = `Speaker:
+            ${this.speaker.getName()}`;
+            parent.appendChild(speakerDiv);
+        }
+        if(this.characters){
+            for(const character of this.characters){
+                const div = document.createElement("div");
+                div.innerText = character.character.name;
+                parent.appendChild(div);
+            }
+        }
+    }
+    openEditSpeakerForm(){
+        const form = utils.openNewForm("form");
+        form.innerHTML = "<h3>Edit Speaker</h3>";
+        utils.setModalBackButton(()=>{this.openEditForm()});
+        let characterField = document.createElement("select");
+        for(const character of this.characters){
+            const option = document.createElement("option");
+            option.value = character.character.getName();
+            option.innerText = character.character.getName();
+            characterField.appendChild(option);
+        }
+        form.appendChild(characterField);
+        let button = utils.appendButton("Set",form,()=>{
+            this.speaker = gameData.getCharacterByName(characterField.value);
+            this.openEditForm();
+        })
+
+    }
+    openEditCharactersForm(){
+        const form = utils.openNewForm("form");
+        form.innerHTML = "<h3>Edit Characters</h3>";
+        utils.setModalBackButton(()=>{this.openEditForm()});
+        let characterField = document.createElement("select");
+        for(const character of gameData.getCharacters()){
+            const option = document.createElement("option");
+            option.value = character.name;
+            option.innerText = character.getName();
+            characterField.appendChild(option);
+        }
+        form.appendChild(characterField);
+        let positionField = document.createElement("input");
+        form.appendChild(positionField);
+        let button = utils.appendButton("Add",form,()=>{
+            this.characters.push({"character":gameData.getCharacterByName(characterField.value),"position":positionField.value});
+            this.openEditCharactersForm();
+        })
+        for (const character of this.characters) {
+            const div = document.createElement("div");
+            form.appendChild(div);
+            div.innerText = character.character.getName();
+
+            const removeButton = utils.appendButton("remove", div, () => {
+                this.characters = this.characters.filter(c => c !== character);
+                this.openEditCharactersForm();
+            });
+        }
     }
 }
 
 
 function setSaveAndLoad(gameData){
-    const exportButton = document.createElement("button");
-    const importButton = document.createElement("button");
-    exportButton.innerText = "Export";
-    importButton.innerText = "Import";
-    exportButton.addEventListener("click",()=>save(gameData));
-    importButton.addEventListener("click",()=>utils.openNewForm("import-form"));
+    const exportButton = utils.appendButton("Export",devToolSideBar,()=>save(gameData));
+    const importButton = utils.appendButton("Import",devToolSideBar,()=>utils.openNewForm("import-form"));
+
     const importForm = document.getElementById("import-form");
     importForm.querySelector(".save").addEventListener("click",()=>{
         let fr = new FileReader();
@@ -408,36 +631,6 @@ function setSaveAndLoad(gameData){
         }
         fr.readAsText(importForm.querySelector("#file").files[0]);
     })
-
-    // importForm.querySelector(".save").addEventListener("click",async ()=>{
-    //     let file = importForm.querySelector("#file").value;
-    //     let reader = new FileReader();
-
-    //     reader.onload = function (event) {
-    //         let arrayBuffer = event.target.result;
-    //         let array = new Uint8Array(arrayBuffer);
-
-    //         let fileSize = arrayBuffer.byteLength;
-    //         let bytes = [];
-    //         for (let i = 0; i < Math.min(20, fileSize); i++) {
-    //             bytes.push(array[i]);
-    //         }
-    //         console.log(bytes);
-    //         // document
-    //         //     .getElementById('fileContents')
-    //         //     .textContent =
-    //         //     'First 20 bytes of file as ArrayBuffer: '
-    //         //     + bytes.join(', ');
-    //         // console.log('ArrayBuffer:', arrayBuffer);
-    //     };
-
-    //     reader.readAsArrayBuffer(file);
-    //     let data = await (await fetch(importForm.querySelector("#file").value)).json();
-    //     console.log(data);
-    //     console.log(importForm.querySelector("#file").value);
-    // })
-    devToolSideBar.appendChild(exportButton);
-    devToolSideBar.appendChild(importButton);
 }
 
 function download(content, fileName, contentType) {

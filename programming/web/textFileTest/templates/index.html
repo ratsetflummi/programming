@@ -26,7 +26,9 @@
 
         <!-- Modal content -->
         <div class="modal-content" id="modal-content">
+            <span class="back"></span>
             <span class="close">&times;</span>
+            <form id="form"></form>
             <form id="add-character-form">
                 <h3>New Character</h3>
                 <p>
@@ -65,6 +67,24 @@
                     <button type="button" class="save">Save</button>
                 </p>
             </form>
+            <form id="add-frame-form">
+                <h3>New Frame</h3>
+                <p>
+                    <label for="type">Type</label>
+                    <select id="type">
+                        <option value="choice">Choice</option>
+                        <option value="dialogue">Dialogue</option>
+                    </select>
+                </p>
+                <p>
+                    <button type="button" class="save">Save</button>
+                </p>
+            </form>
+            <form id="edit-choice-form">
+            </form>
+            <form id="edit-dialogue-form">
+            </form>
+
             <form id="import-form">
                 <input type="file" id="file">
                 <button type="button" class="save">Import</button>
