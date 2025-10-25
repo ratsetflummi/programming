@@ -54,6 +54,9 @@ class GameData {
     getCharacterByName(name){
         return this.characters.find(c=>c.name == name);
     }
+    getChapterByName(name){
+        return this.chapters.find(c=>c.name == name);
+    }
     getCharacters(){
         return this.characters;
     }
@@ -244,11 +247,7 @@ class DevTools {
         this.selectedFrame = frame;
         this.framePreview.innerHTML = "";
         frame.showFramePreview(this.framePreview);
-        let editButton = document.createElement("button");
-        editButton.innerText = "Edit";
-        editButton.type = "button";
-        this.framePreview.appendChild(editButton);
-        editButton.addEventListener("click",()=>{
+        let editButton = utils.appendButton("Edit",this.framePreview,()=>{
             frame.openEditForm();
         })
         console.log("get a frame select here for ",frame);
@@ -349,6 +348,10 @@ class Chapter{
         this.scenes.push(scene);
         return scene;
     }
+    
+    getSceneByName(name){
+        return this.scenes.find(c=>c.name == name);
+    }
     getScenes(){
         return this.scenes;
     }
@@ -409,7 +412,7 @@ class Frame{
         this.number = number;
     }
     openEditTextForm(){
-        const form = utils.openNewForm("edit-dialogue-form");
+        const form = utils.openNewForm("form");
         form.innerHTML = "<h3>Edit Text</h3>";
         utils.setModalBackButton(()=>{this.openEditForm()});
         let textField = document.createElement("textarea");
@@ -417,13 +420,13 @@ class Frame{
             textField.value = this.text;
         }
         form.appendChild(textField);
-        let button = document.createElement("button");
-        button.type = "button";
-        button.innerText = "Save";
-        button.addEventListener("click",()=>{
+        let button = utils.appendButton("Save",form,()=>{
             this.text = textField.value;
+            this.openEditForm();
         })
-        form.appendChild(button);
+    }
+    openEditForm(){
+        console.log("open edit form");
     }
     getName(){return this.number;}
 }
@@ -440,8 +443,11 @@ class Choice extends Frame{
     }
     static loadFrame(frame){
         const newFrame = new Choice(frame.number);
-        newFrame.options = frame.options;
         newFrame.text = frame.text;
+        if(!frame.options){
+            return newFrame;
+        }
+        newFrame.options = frame.options;
         return newFrame;
     }
     addText(text){
@@ -457,19 +463,11 @@ class Choice extends Frame{
         div.innerText = this.text || "!!!";
     }
     openEditForm(){
-        const form = utils.openNewForm("edit-choice-form");
+        const form = utils.openNewForm("form");
         form.innerHTML = "<h3>Edit Choice</h3>";
         this.showDetailedOverview(form);  
-        const textButton = document.createElement("button");
-        form.appendChild(textButton);
-        textButton.type = "button";
-        textButton.innerText = "Edit Text";
-        textButton.addEventListener("click",()=>{this.openEditTextForm()});
-        const optionButton = document.createElement("button");
-        form.appendChild(optionButton);
-        optionButton.type = "button";
-        optionButton.innerText = "Edit Options";
-        optionButton.addEventListener("click",()=>{this.openEditOptionsForm()});
+        const textButton = utils.appendButton("Edit Text",form,()=>{this.openEditTextForm()});
+        const optionButton = utils.appendButton("Edit Options",form,()=>{this.openEditOptionsForm()});
     }
     showDetailedOverview(parent){
         if(this.text){
@@ -486,7 +484,119 @@ class Choice extends Frame{
         }
     }
     openEditOptionsForm(){
-        console.log("edit options");
+        const types = ["flag","jump"];
+        const form = utils.openNewForm("form");
+        utils.setModalBackButton(()=>{this.openEditForm()});
+        form.innerHTML = "<h3>Edit Options</h3>";
+        utils.setModalBackButton(()=>{this.openEditForm()});
+        const optionName = document.createElement("textarea");
+        form.appendChild(optionName);
+        const button = utils.appendButton("Add",form,()=>{addOptionValue()});
+
+        const saveButton = utils.appendButton("Save",form,()=>{
+            const data = {};
+            data["text"] = optionName.value;
+            data["effects"] = [];
+            form.querySelector(".optionValue").forEach(div=>{
+                const optionType = "A";
+                if(optionType.value == "flag"){
+                    data["flag"] = {"type":flagName.value,"value":flagValue.value};
+                } else if(optionType.value == "jump"){
+                    data["jump"] = {"chapter":chapterSelect.value,"scene":sceneSelect.value,"frame":frameSelect.value};
+                }
+            })
+
+            this.options.push(data);
+            this.openEditForm();
+        })
+
+        addOptionValue();
+
+        function addOptionValue(){
+            const optionValue = document.createElement("div");
+            optionValue.classList.add("optionValue");
+            const optionType = document.createElement("select");
+            optionValue.appendChild(optionType);
+            for(const type of types){
+                const option = document.createElement("option");
+                option.value = type;
+                option.innerText = type;
+                optionType.appendChild(option);
+            }
+            form.appendChild(optionValue);
+            const flagName = document.createElement("input");
+            const flagValue = document.createElement("input");
+            const chapterSelect = document.createElement("select");
+            const sceneSelect = document.createElement("select");
+            const frameSelect = document.createElement("select");
+
+
+            optionValue.appendChild(flagName);
+            optionValue.appendChild(flagValue);
+
+            optionType.addEventListener("change",()=>{
+                optionValue.innerHTML = "";
+                if(optionType.value == "flag"){
+                    optionValue.appendChild(flagName);
+                    optionValue.appendChild(flagValue);
+                } else if(optionType.value == "jump"){
+                    optionValue.appendChild(chapterSelect);
+                    optionValue.appendChild(sceneSelect);
+                    optionValue.appendChild(frameSelect);
+
+                    chapterSelect.innerHTML = "";
+                    sceneSelect.innerHTML = "";
+                    frameSelect.innerHTML = "";
+
+                    setChapterSelect();
+                    setSceneSelect();
+                    setFrameSelect();
+                    chapterSelect.addEventListener("change",()=>{
+                        sceneSelect.innerHTML = "";
+                        setSceneSelect();
+                    })
+
+                    sceneSelect.addEventListener("change",()=>{
+                        frameSelect.innerHTML = "";
+                        setFrameSelect();
+                    })
+
+                }
+                form.appendChild(optionValue);
+            })
+
+                
+            function setChapterSelect(){
+                for(const chapter of gameData.getChapters()){
+                    const option = document.createElement("option");
+                    option.value = chapter.getName();
+                    option.innerText = chapter.getName();
+                    chapterSelect.appendChild(option);
+                }
+            }
+
+            function setSceneSelect(){
+                const chapter = gameData.getChapterByName(chapterSelect.value);
+                for(const scene of chapter.getScenes()){
+                    const option = document.createElement("option");
+                    option.value = scene.getName();
+                    option.innerText = scene.getName();
+                    sceneSelect.appendChild(option);
+                }
+            }
+
+            function setFrameSelect(){
+                const chapter = gameData.getChapterByName(chapterSelect.value);
+                const scene = chapter.getSceneByName(sceneSelect.value);
+                for(const frame of scene.getFrames()){
+                    const option = document.createElement("option");
+                    option.value = frame.getName();
+                    option.innerText = frame.getName();
+                    frameSelect.appendChild(option);
+                }
+            }
+        }
+
     }
 }
 
@@ -530,24 +640,12 @@ class Dialogue extends Frame{
         this.text = text;
     }
     openEditForm(){
-        const form = utils.openNewForm("edit-dialogue-form");
+        const form = utils.openNewForm("form");
         form.innerHTML = "<h3>Edit Dialogue</h3>";
         this.showDetailedOverview(form);  
-        const textButton = document.createElement("button");
-        form.appendChild(textButton);
-        textButton.type = "button";
-        textButton.innerText = "Edit Text";
-        textButton.addEventListener("click",()=>{this.openEditTextForm()});
-        const charactersButton = document.createElement("button");
-        form.appendChild(charactersButton);
-        charactersButton.type = "button";
-        charactersButton.innerText = "Edit Characters";
-        charactersButton.addEventListener("click",()=>{this.openEditCharactersForm()}); 
-        const speakerButton = document.createElement("button");
-        form.appendChild(speakerButton);
-        speakerButton.type = "button";
-        speakerButton.innerText = "Edit Speaker";
-        speakerButton.addEventListener("click",()=>{this.openEditSpeakerForm()}); 
+        const textButton = utils.appendButton("Edit Text",form,()=>{this.openEditTextForm()});
+        const charactersButton = utils.appendButton("Edit Characters",form,()=>{this.openEditCharactersForm()});
+        const speakerButton = utils.appendButton("Edit Speaker",form,()=>{this.openEditSpeakerForm()});
     }
     showDetailedOverview(parent){
         if(this.text){
