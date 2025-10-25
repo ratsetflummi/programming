@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+
+<body>
+    <div id="dev-tool-sidebar">
+    </div>
+    <main>
+        <div id="image-field"></div>
+        <div id="player-choice"></div>
+        <div id="text-field">
+            <div id="speaker-name">aaaaaaa?</div>
+            <div id="dialogue-field"></div>
+        </div>
+    </main>
+    <script src="../static/js/main.js" type="module"></script>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content" id="modal-content">
+            <span class="close">&times;</span>
+            <form id="add-character-form">
+                <h3>New Character</h3>
+                <p>
+                    <label for="name">Name</label>
+                    <input id="name" type="text">
+                </p>
+                <p>
+                    <label for="color">Color</label>
+                    <input id="color" type="color" value="#acacac">
+                </p>
+                <p>
+                    <label for="image">Image Name (with extension)</label>
+                    <input id="image" type="text" placeholder="sample-image.png">
+                </p>
+                <p>
+                    <button type="button" class="save">Save</button>
+                </p>
+            </form>
+            <form id="add-chapter-form">
+                <h3>New Chapter</h3>
+                <p>
+                    <label for="name">Name</label>
+                    <input id="name" type="text">
+                </p>
+                <p>
+                    <button type="button" class="save">Save</button>
+                </p>
+            </form>
+            <form id="add-scene-form">
+                <h3>New Scene</h3>
+                <p>
+                    <label for="name">Name</label>
+                    <input id="name" type="text">
+                </p>
+                <p>
+                    <button type="button" class="save">Save</button>
+                </p>
+            </form>
+            <form id="import-form">
+                <input type="file" id="file">
+                <button type="button" class="save">Import</button>
+            </form>
+        </div>
+
+    </div>
+</body>
+
+</html>
