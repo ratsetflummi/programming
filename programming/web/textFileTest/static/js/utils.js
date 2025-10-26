@@ -26,7 +26,11 @@ function closeModal(){
 function setModalBackButton(method){
     removeModalBackButton();
     const span = document.getElementById("myModal").querySelector(".back");
-    const button = appendButton("←",span,method);
+    const button = document.createElement("span");
+    button.addEventListener("click",method);
+    button.innerText = "←";
+    button.style.cursor = "pointer";
+    span.appendChild(button);
 }
 
 function removeModalBackButton(){
@@ -80,7 +84,6 @@ class Color {
         } else if (this.hex) {
             this.rgb = Color.getRgbColorFromHexColor(this.hex);
         }
-        console.log(this);
     }
     static getRgbColorFromName(name) {
         let div = document.createElement("div");
@@ -102,11 +105,9 @@ class Color {
     }
     static getRgbColorFromHexColor(hex) {
         hex = hex.replace("#", "");
-        console.log(hex);
         let rgb = [];
         for (let i = 0; i < hex.length; i += 2) {
             let bit = hex[i] + hex[i + 1];
-            console.log(bit);
             bit = parseInt(bit, 16);
             rgb.push(bit);
         }
