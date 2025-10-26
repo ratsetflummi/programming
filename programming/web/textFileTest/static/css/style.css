@@ -8,6 +8,9 @@
     --choice-text: rgb(255, 255, 255);
 }
 
+.optionValue{
+    margin-top: 5px;
+}
 
 select, button, input, textarea{
     background-color: var(--button-bg);
@@ -27,6 +30,11 @@ input,textarea{
     background-color: var(--input-bg);
     width: 95%;
     display: block;
+}
+
+input[type="checkbox"] {
+    height: 20px;
+    cursor: pointer;
 }
 
 .preview-div{

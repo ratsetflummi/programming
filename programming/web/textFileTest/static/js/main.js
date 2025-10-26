@@ -1,19 +1,12 @@
 import * as utils from "./utils.js";
 utils.test();
 let color = new utils.Color("lightblue");
-async function init() {
-    const fileData = await (await fetch(`../static/data/script.txt`)).json();
-    //gameData.load(fileData);
-    //gameData.characters[0].speak("Abc")
-    //download(JSON.stringify(gameData),"script.txt","text/plain");
-
-}
 
 function save(gameData) {
     // Create a shallow copy without devTools
     const dataToSave = { ...gameData };
     delete dataToSave.devTools;
-    download(JSON.stringify(dataToSave), "script.txt", "text/plain");
+    download(JSON.stringify(dataToSave), "script.savefile", "text/plain");
 }
 class GameData {
     constructor() {
@@ -28,6 +21,8 @@ class GameData {
     }
     start() {
         if (this.chapters.length > 0) {
+            playerChoiceField.innerHTML = "";
+
             this.chapters[0].runChapter();
         }
     }
@@ -482,6 +477,7 @@ class Flag {
     }
     getName() { return this.name; }
     getId() { return this.id; }
+    getType() { return this.type; }
 }
 
 class Chapter {
@@ -601,6 +597,7 @@ class Frame {
     constructor(name) {
         this.name = name;
         this.id = utils.generateId();
+        this.conditionalJumps = [];
         this.jumpDestination;
     }
     openEditTextForm() {
@@ -635,14 +632,14 @@ class Frame {
         if(!jumpDestination){
             return null;
         }
-        const destination = {};
+        const destination = jumpDestination;
         destination["chapter"] = gameData.getChapterById(jumpDestination.chapter);
         destination["scene"] = destination["chapter"].getSceneById(jumpDestination.scene);
         destination["frame"] = destination["scene"].getFrameById(jumpDestination.frame);
         return destination;
     }
 
-    static makeJumpSelect(){
+    static makeJumpSelect(conditional=false){
         const optionValue = document.createElement("div");
         optionValue.classList.add("optionValue");
         const chapterSelect = document.createElement("select");
@@ -654,6 +651,34 @@ class Frame {
         optionValue.appendChild(chapterSelect);
         optionValue.appendChild(sceneSelect);
         optionValue.appendChild(frameSelect);
+        if(conditional){
+            const flagSelect = document.createElement("div");
+            const flagName = document.createElement("select");
+            flagName.id = "flag-name";
+            for(const flag of gameData.getFlags()){
+                const option = document.createElement("option");
+                option.innerText = flag.getName();
+                option.value = flag.getId();
+                flagName.appendChild(option);
+            }
+            const conditionType = document.createElement("select");
+            conditionType.id = "condition-type";
+            for(const type of ["equals","less than","greater than"]){
+                const option = document.createElement("option");
+                option.innerText = type;
+                option.value = type;
+                conditionType.appendChild(option);
+            }
+            const flagValue = document.createElement("input");
+            flagValue.id = "flag-value";
+            setFlagValueType(flagValue,flagName);
+            flagName.addEventListener("click",()=>{setFlagValueType(flagValue,flagName)});
+            flagSelect.appendChild(flagName);
+            flagSelect.appendChild(conditionType);
+            flagSelect.appendChild(flagValue);
+            optionValue.appendChild(flagSelect);
+        }
+
 
         chapterSelect.innerHTML = "";
         sceneSelect.innerHTML = "";
@@ -708,13 +733,21 @@ class Frame {
         form.innerHTML = `
             <h3>Edit Jump Destination</h3>
         `
+        const moreJumpsButton = utils.appendButton("Add Condtional Jump",form,()=>{form.appendChild(Frame.makeJumpSelect("conditional"))});
         form.appendChild(Frame.makeJumpSelect());
         const saveButton = utils.appendButton("Save", form, () => {
             form.querySelectorAll(".optionValue").forEach(div => {
                 const chapter = div.querySelector("#chapter-select").value;
                 const scene = div.querySelector("#scene-select").value;
                 const frame = div.querySelector("#frame-select").value;
-                this.jumpDestination = { "chapter": chapter, "scene": scene, "frame": frame };
+                if(div.querySelector("#flag-name")){
+                    const flagName = div.querySelector("#flag-name").value;
+                    const conditionType = div.querySelector("#condition-type").value;
+                    const conditionValue = div.querySelector("#flag-value").value;
+                    this.conditionalJumps.push({"chapter": chapter, "scene": scene, "frame": frame, "flagName":flagName,"conditionType":conditionType,"conditionValue":conditionValue});
+                } else{
+                    this.jumpDestination = { "chapter": chapter, "scene": scene, "frame": frame };
+                }
             })
             this.openEditForm();
         })
@@ -798,7 +831,6 @@ class Choice extends Frame {
         this.showDetailedOverview(form);
         const textButton = utils.appendButton("Edit Text", form, () => { this.openEditTextForm() });
         const optionButton = utils.appendButton("Edit Options", form, () => { this.openEditOptionsForm() });
-        const jumpButton = utils.appendButton("Edit Next Frame", form, () => { this.openNextFrameForm() });
     }
     showDetailedOverview(parent) {
         if (this.text) {
@@ -834,7 +866,7 @@ class Choice extends Frame {
         return div;
     }
     openEditOptionsForm() {
-        const types = ["flag", "jump"];
+        const types = ["flag", "jump", "conditional jump"];
         const form = utils.openNewForm("form");
         form.innerHTML = "<h3>Edit Options</h3>";
         utils.setModalBackButton(() => { this.openEditForm() });
@@ -856,19 +888,29 @@ class Choice extends Frame {
             const data = {};
             data["text"] = optionName.value;
             data["effects"] = {};
+            data["effects"]["conditional jump"] = [];
+                        data["effects"]["flag"] = [];
             form.querySelectorAll(".optionValue").forEach(div => {
-                console.log(div);
+            const conditional = div.dataset.conditional;
+            console.log(conditional);
                 const optionType = div.querySelector("#option-type").value;
                 if (optionType == "flag") {
-                    if(!data["effects"]["flag"]){
-                        data["effects"]["flag"] = [];
-                    }
+                    to do : add conditional this.options, finish conditional jumps
                     data["effects"]["flag"].push({ "type": div.querySelector("#flag-name").value, "value": div.querySelector("#flag-value").value });
                 } else if (optionType == "jump") {
                     const chapter = div.querySelector("#chapter-select").value;
                     const scene = div.querySelector("#scene-select").value;
                     const frame = div.querySelector("#frame-select").value;
                     data["effects"]["jump"] = { "chapter": chapter, "scene": scene, "frame": frame };
+                } else if (optionType == "conditional jump"){
+                    const chapter = div.querySelector("#chapter-select").value;
+                    const scene = div.querySelector("#scene-select").value;
+                    const frame = div.querySelector("#frame-select").value;
+                    const flagName = div.querySelector("#flag-name").value;
+                    const conditionType = div.querySelector("#condition-type").value;
+                    const conditionValue = div.querySelector("#flag-value").value;
+                    data["effects"]["conditional jump"].push({"chapter": chapter, "scene": scene, "frame": frame, "flagName":flagName,"conditionType":conditionType,"conditionValue":conditionValue});
+
                 }
             })
             this.addOption(data["text"],data["effects"]);
@@ -894,12 +936,14 @@ class Choice extends Frame {
             flagName.id = "flag-name";
             for(const flag of gameData.getFlags()){
                 const option = document.createElement("option");
-                option.innerText = flag.name;
-                option.value = flag.name;
+                option.innerText = flag.getName();
+                option.value = flag.getId();
                 flagName.appendChild(option);
             }
             const flagValue = document.createElement("input");
             flagValue.id = "flag-value";
+            setFlagValueType(flagValue,flagName);
+            flagName.addEventListener("click",()=>{setFlagValueType(flagValue,flagName)});
 
 
             optionValue.appendChild(flagName);
@@ -919,12 +963,20 @@ class Choice extends Frame {
                 optionValue.appendChild(optionType);
                 form.appendChild(optionValue);
             })
+                
 
         }
 
+
     }
 }
-
+function setFlagValueType(flagValue,flagName){
+    if(gameData.getFlagById(flagName.value).getType() == "number"){
+        flagValue.type = "number";
+    } else {
+        flagValue.type = "text";
+    }
+}
 class Dialogue extends Frame {
     constructor(name) {
         super(name);
@@ -1108,4 +1160,3 @@ const textField = document.getElementById("text-field");
 const speakerName = document.getElementById("speaker-name");
 const dialogueField = document.getElementById("dialogue-field");
 const gameData = new GameData();
-init();
