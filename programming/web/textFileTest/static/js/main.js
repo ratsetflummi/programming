@@ -17,8 +17,12 @@ function save(gameData) {
 }
 class GameData {
     constructor() {
+        this.makeBlank();
+    }
+    makeBlank(){
         this.characters = [];
         this.chapters = [];
+        this.flags = [];
         this.chapterCount = 0;
         this.devTools = new DevTools(this);
     }
@@ -28,6 +32,7 @@ class GameData {
         }
     }
     load(data) {
+        this.makeBlank();
         Object.assign(this, data);
         this.characters = [];
         for (const character of data.characters) {
@@ -37,7 +42,12 @@ class GameData {
         for (const chapter of data.chapters) {
             this.chapters.push(Chapter.loadChapter(chapter));
         }
+        this.flags = [];
+        for (const flag of data.flags) {
+            this.flags.push(Flag.loadFlag(flag));
+        }
         this.devTools = new DevTools(this);
+        console.log(this);
     }
     addCharacter() {
         const character = Character.addCharacter();
@@ -52,17 +62,38 @@ class GameData {
         this.chapters.push(chapter);
         return chapter;
     }
+    addFlag(){
+        const flag = Flag.addFlag();
+        this.flags.push(flag);
+        console.log(this.flags);
+        return flag;
+    }
     getCharacterByName(name) {
         return this.characters.find(c => c.name == name);
     }
     getChapterByName(name) {
         return this.chapters.find(c => c.name == name);
     }
+    getFlagByName(name){
+        return this.flags.find(c => c.name == name);
+    }
+    getCharacterById(id) {
+        return this.characters.find(c => c.id == id);
+    }
+    getChapterById(id) {
+        return this.chapters.find(c => c.id == id);
+    }
+    getFlagById(id){
+        return this.flags.find(c => c.id == id);
+    }
     getCharacters() {
         return this.characters;
     }
     getChapters() {
         return this.chapters;
+    }
+    getFlags(){
+        return this.flags;
     }
 }
 
@@ -91,23 +122,23 @@ class DevTools {
         this.framePreview = document.createElement("div");
         this.frameAddButton = document.createElement("button");
         this.frameSelect = document.createElement("select");
-        this.frameForm = document.getElementById("add-frame-form");
-        this.frameForm.querySelectorAll(".save").forEach(button => button.remove());
-        this.frameSaveButton = document.createElement("button");
-        this.frameSaveButton.innerText = "Save";
-        this.frameSaveButton.classList.add("save");
-        this.frameSaveButton.type = "button";
-        this.frameForm.appendChild(this.frameSaveButton);
-        this.frameSaveButton.addEventListener("click", () => { this.addFrame() });
+        this.flagDiv = document.createElement("div");
+        this.flagDiv.classList.add("preview-div");
+        this.flagPreview = document.createElement("div");
+        this.flagAddButton = document.createElement("button");
+        this.flagSelect = document.createElement("select");
+
 
 
         setSaveAndLoad(this.gameData);
 
+        this.toolbar.appendChild(this.flagDiv);
         this.toolbar.appendChild(this.characterDiv);
         this.toolbar.appendChild(this.chapterDiv);
         this.toolbar.appendChild(this.sceneDiv);
         this.toolbar.appendChild(this.frameDiv);
 
+        this.setFlagFunctions();
         this.setCharacterFunctions();
         this.setChapterFunctions();
         if (this.gameData.getChapters().length > 0) {
@@ -143,6 +174,65 @@ class DevTools {
         this.sceneSaveButton.addEventListener("click", () => this.addScene())
     }
 
+    setFlagFunctions() {
+        this.flagDiv.innerHTML = "";
+        this.flagAddButton = utils.appendButton("New Flag", this.flagDiv, ()=>{this.openFlagForm()});
+
+        this.flagDiv.appendChild(this.flagSelect);
+        this.flagDiv.appendChild(this.flagPreview);
+        for (const flag of this.gameData.getFlags()) {
+            this.addFlagOption(flag);
+            this.selectedFlag = flag;
+        }
+    }
+
+    
+    addFlagOption(flag) {
+        const option = document.createElement("option");
+        option.addEventListener("click", () => { this.showFlagPreview(flag) });
+        option.innerText = flag.getName();
+        option.value = flag.getId();
+        this.flagSelect.appendChild(option);
+    }
+
+    showFlagPreview(flag) {
+        this.flagPreview.innerHTML = "";
+        flag.showFlag(this.flagPreview);
+    }
+
+    openFlagForm(){
+        this.flagForm = utils.openNewForm("form");
+        this.flagForm.innerHTML = `
+            <h3>New Flag</h3>
+            <p>
+                <label for="name">Name</label>
+                <input id="name" type="text">
+                <label for="type">Type</label>
+                <select id="type">
+                    <option value="number">Number</option>
+                    <option value="string">Text</option>
+                </select>
+                <label for="startValue">Start Value</label>
+                <input id="startValue" type="number">
+            </p>
+        `
+        const typeToggle = this.flagForm.querySelector("#type");
+        typeToggle.addEventListener("change",()=>{
+            let startValueInput = this.flagForm.querySelector("#startValue");
+            const startValueLabel = this.flagForm.querySelector("[for='startValue']");
+            startValueInput.remove();
+            startValueInput = document.createElement("input");
+            startValueLabel.after(startValueInput);
+            startValueInput.id = "startValue";
+            if(typeToggle.value == "number"){
+                startValueInput.type = "number";
+            } else {
+                startValueInput.type = "text";
+            }
+        })
+
+        this.flagSaveButton = utils.appendButton("Save",this.flagForm,() => {this.addFlag();});
+    }
 
     setChapterFunctions() {
         this.chapterDiv.innerHTML = "";
@@ -179,12 +269,14 @@ class DevTools {
         const option = document.createElement("option");
         option.addEventListener("click", () => { this.showCharacterPreview(character) });
         option.innerText = character.getName();
+        option.value = character.getId();
         this.characterSelect.appendChild(option);
     }
     addChapterOption(chapter) {
         const option = document.createElement("option");
         option.addEventListener("click", () => { this.showChapterPreview(chapter) });
         option.innerText = chapter.getName();
+        option.value = chapter.getId();
         this.chapterSelect.appendChild(option);
         this.showChapterPreview(chapter);
     }
@@ -192,7 +284,15 @@ class DevTools {
         const option = document.createElement("option");
         option.addEventListener("click", () => { this.showScenePreview(scene) });
         option.innerText = scene.getName();
+        option.value = scene.getId();
         this.sceneSelect.appendChild(option);
+    }
+    addFlagOption(flag) {
+        const option = document.createElement("option");
+        option.addEventListener("click", () => { this.showFlagPreview(flag) });
+        option.innerText = flag.getName();
+        option.value = flag.getId();
+        this.flagSelect.appendChild(option);
     }
     openSceneForm() {
         utils.openNewForm("add-scene-form");
@@ -203,26 +303,46 @@ class DevTools {
         this.addSceneOption(this.selectedChapter.addScene());
     }
 
+    addFlag(){
+        utils.closeModal();
+        this.addFlagOption(this.gameData.addFlag());
+    }
+
     showScenePreview(scene) {
         this.selectedScene = scene;
         this.setFrameFunctions();
     }
 
-
-
     addFrameOption(frame) {
         const option = document.createElement("option");
         option.addEventListener("click", () => this.showFramePreview(frame));
         option.innerText = frame.getName();
+        option.value = frame.getId();
         this.frameSelect.appendChild(option);
     }
     openFrameForm() {
-        utils.openNewForm("add-frame-form");
+        this.frameForm = utils.openNewForm("form");
+        this.frameForm.innerHTML = `
+            <h3>New Frame</h3>
+            <p>
+                <label for="name">Name</label>
+                <input id="name" type="text">
+                <label for="type">Type</label>
+                <select id="type">
+                    <option value="choice">Choice</option>
+                    <option value="dialogue">Dialogue</option>
+                </select>
+            </p>
+        `
+        this.frameSaveButton = utils.appendButton("Save",this.frameForm, () => { this.addFrame() });
     }
 
     addFrame() {
         utils.closeModal();
-        this.addFrameOption(this.selectedScene.addFrame());
+        const frame = this.selectedScene.addFrame();
+        this.addFrameOption(frame);
+        this.selectedFrame = frame;
+        frame.openEditForm();
     }
 
     showFramePreview(frame) {
@@ -257,7 +377,7 @@ class DevTools {
                 </p>
         `
 
-        this.characterSaveButton = utils.appendButton("Save", this.characterForm, () => {this.addCharacter() });
+        this.characterSaveButton = utils.appendButton("Save", this.characterForm, () => { this.addCharacter() });
     }
     addCharacter() {
         utils.closeModal();
@@ -283,6 +403,7 @@ class DevTools {
 
 class Character {
     constructor(name, color = null, image = null) {
+        this.id = utils.generateId();
         this.name = name;
         this.images = [];
         this.image = image;
@@ -291,7 +412,7 @@ class Character {
         this.showCharacter(imageField);
     }
     static addCharacter() {
-        const form = document.getElementById("add-character-form");
+        const form = document.getElementById("form");
         const name = form.querySelector("#name").value;
         const color = form.querySelector("#color").value;
         const image = form.querySelector("#image").value;
@@ -299,6 +420,7 @@ class Character {
     }
     static loadCharacter(character) {
         const newCharacter = new Character(character.name, character.color.hex, character.image);
+        newCharacter.id = character.id;
         newCharacter.images = character.images;
         return newCharacter;
     }
@@ -318,25 +440,66 @@ class Character {
         textField.style.backgroundColor = this.color.getContrastColor();
     }
     getName() { return this.name; }
+    getId() { return this.id; }
 
 }
 
+class Flag {
+    constructor(name, startValue = 0, type = "number") {
+        this.id = utils.generateId();
+        this.name = name;
+        this.type = type;
+        this.value = startValue;
+        if(type == "number" && !parseInt(startValue)){
+            this.value = 0;
+        }
+    }
+    static addFlag() {
+        const form = document.getElementById("form");
+        const name = form.querySelector("#name").value;
+        const type = form.querySelector("#type").value;
+        const startValue = form.querySelector("#startValue").value;
+        return new Flag(name, startValue, type);
+    }
+    static loadFlag(flag) {
+        const newFlag = new Flag(flag.name, flag.value, flag.type);
+        newFlag.id = flag.id;
+        return newFlag;
+    }
+    updateValue(value){
+        if(this.type == "number"){
+            console.log(`${this.value} + ${value}`);
+        } else {
+            console.log(`${this.value} = ${value}`);
+        }
+    }
+    showFlag(parent){
+        const div = document.createElement("div");
+        div.innerText = `
+            ${this.name}: ${this.value}
+        `;
+        parent.appendChild(div);
+    }
+    getName() { return this.name; }
+    getId() { return this.id; }
+}
 
 class Chapter {
-    constructor(name, number) {
+    constructor(name) {
         this.scenes = [];
         this.name = name;
-        this.number = number;
+        this.id = utils.generateId();
         this.sceneCount = 0;
     }
-    static addChapter(number) {
+    static addChapter() {
         const form = document.getElementById("add-chapter-form");
         const name = form.querySelector("#name").value;
-        return new Chapter(name, number);
+        return new Chapter(name);
     }
     static loadChapter(chapter) {
-        const newChapter = new Chapter(chapter.name, chapter.number);
+        const newChapter = new Chapter(chapter.name);
         newChapter.scenes = [];
+        newChapter.id = chapter.id;
         for (const scene of chapter.scenes) {
             newChapter.scenes.push(Scene.loadScene(scene));
         }
@@ -354,6 +517,10 @@ class Chapter {
         return scene;
     }
 
+
+    getSceneById(id) {
+        return this.scenes.find(c => c.id == id);
+    }
     getSceneByName(name) {
         return this.scenes.find(c => c.name == name);
     }
@@ -361,25 +528,27 @@ class Chapter {
         return this.scenes;
     }
     getName() { return this.name; }
+    getId() { return this.id; }
 }
 
 class Scene {
-    constructor(name, number) {
+    constructor(name) {
         this.frames = [];
         this.name = name;
-        this.number = number;
+        this.id = utils.generateId();
         this.backgroundImage;
         this.frameCount = 0;
     }
-    static addScene(number) {
+    static addScene() {
         const form = document.getElementById("add-scene-form");
         const name = form.querySelector("#name").value;
-        return new Scene(name, number);
+        return new Scene(name);
     }
     static loadScene(scene) {
-        const newScene = new Scene(scene.name, scene.number);
+        const newScene = new Scene(scene.name);
         newScene.frameCount = scene.frameCount;
         newScene.frames = [];
+        newScene.id = scene.id;
         for (const frame of scene.frames) {
             if (frame.type == "choice") {
                 newScene.frames.push(Choice.loadFrame(frame));
@@ -391,27 +560,19 @@ class Scene {
     }
     runScene() {
         if (this.frames.length > 0) {
-            this.selectedFrameNumber = -1;
-            this.nextFrame();
-        }
-    }
-    nextFrame(){
-        if(this.frames.length > this.selectedFrameNumber + 1){
-            this.selectedFrameNumber++;
-            this.selectedFrame = this.frames[this.selectedFrameNumber];
+            this.selectedFrame = this.frames[0];
             this.selectedFrame.displayFrame();
-            const nextButton = utils.appendButton("->",textField,()=>{this.nextFrame()});
-            nextButton.classList.add("next-button");
         }
     }
     addFrame() {
-        const type = document.getElementById("add-frame-form").querySelector("#type").value;
+        const form = document.getElementById("form");
+        const name = form.querySelector("#name").value;
+        const type = form.querySelector("#type").value;
         let frame;
-        console.log(this,this.frameCount);
         if (type == "choice") {
-            frame = Choice.addFrame(this.frameCount);
+            frame = Choice.addFrame(name,this.frameCount);
         } else if (type == "dialogue") {
-            frame = Dialogue.addFrame(this.frameCount);
+            frame = Dialogue.addFrame(name,this.frameCount);
         }
 
         this.frameCount++;
@@ -422,16 +583,25 @@ class Scene {
     setBackgroundImage(image) {
         this.backgroundImage = image;
     }
+    getFrameByName(name){
+        return this.frames.find(c => c.name == name);
+    }
+    getFrameById(id){
+        return this.frames.find(c => c.id == id);
+    }
     getFrames() {
         return this.frames;
     }
     getName() { return this.name; }
+    getId() { return this.id; }
 }
 
 
 class Frame {
-    constructor(number) {
-        this.number = number;
+    constructor(name) {
+        this.name = name;
+        this.id = utils.generateId();
+        this.jumpDestination;
     }
     openEditTextForm() {
         const form = utils.openNewForm("form");
@@ -447,39 +617,174 @@ class Frame {
             this.openEditForm();
         })
     }
+    setJump(chapter,scene,frame){
+        this.jumpDestination = {chapter:chapter,scene:scene,frame:frame};
+    }
+    jump(destination){
+        if(destination){
+            if(destination.frame){
+                destination.frame.displayFrame();
+            } else if(destination.scene){
+                destination.scene.runScene();
+            } else if(destination.chapter){
+                destination.chapter.runChapter();
+            }
+        }
+    }
+    static loadJumpDestination(jumpDestination){
+        if(!jumpDestination){
+            return null;
+        }
+        const destination = {};
+        destination["chapter"] = gameData.getChapterById(jumpDestination.chapter);
+        destination["scene"] = destination["chapter"].getSceneById(jumpDestination.scene);
+        destination["frame"] = destination["scene"].getFrameById(jumpDestination.frame);
+        return destination;
+    }
+
+    static makeJumpSelect(){
+        const optionValue = document.createElement("div");
+        optionValue.classList.add("optionValue");
+        const chapterSelect = document.createElement("select");
+        chapterSelect.id = "chapter-select";
+        const sceneSelect = document.createElement("select");
+        sceneSelect.id = "scene-select";
+        const frameSelect = document.createElement("select");
+        frameSelect.id = "frame-select";
+        optionValue.appendChild(chapterSelect);
+        optionValue.appendChild(sceneSelect);
+        optionValue.appendChild(frameSelect);
+
+        chapterSelect.innerHTML = "";
+        sceneSelect.innerHTML = "";
+        frameSelect.innerHTML = "";
+
+        setChapterSelect();
+        setSceneSelect();
+        setFrameSelect();
+        chapterSelect.addEventListener("change", () => {
+            sceneSelect.innerHTML = "";
+            setSceneSelect();
+        })
+
+        sceneSelect.addEventListener("change", () => {
+            frameSelect.innerHTML = "";
+            setFrameSelect();
+        })
+        return optionValue;
+
+        function setChapterSelect() {
+            for (const chapter of gameData.getChapters()) {
+                const option = document.createElement("option");
+                option.value = chapter.getId();
+                option.innerText = chapter.getName();
+                chapterSelect.appendChild(option);
+            }
+        }
+
+        function setSceneSelect() {
+            const chapter = gameData.getChapterById(chapterSelect.value);
+            for (const scene of chapter.getScenes()) {
+                const option = document.createElement("option");
+                option.value = scene.getId();
+                option.innerText = scene.getName();
+                sceneSelect.appendChild(option);
+            }
+        }
+
+        function setFrameSelect() {
+            const chapter = gameData.getChapterById(chapterSelect.value);
+            const scene = chapter.getSceneById(sceneSelect.value);
+            for (const frame of scene.getFrames()) {
+                const option = document.createElement("option");
+                option.value = frame.getId();
+                option.innerText = frame.getName();
+                frameSelect.appendChild(option);
+            }
+        }
+    }
+    openNextFrameForm(){
+        const form = utils.openNewForm("form");
+        form.innerHTML = `
+            <h3>Edit Jump Destination</h3>
+        `
+        form.appendChild(Frame.makeJumpSelect());
+        const saveButton = utils.appendButton("Save", form, () => {
+            form.querySelectorAll(".optionValue").forEach(div => {
+                const chapter = div.querySelector("#chapter-select").value;
+                const scene = div.querySelector("#scene-select").value;
+                const frame = div.querySelector("#frame-select").value;
+                this.jumpDestination = { "chapter": chapter, "scene": scene, "frame": frame };
+            })
+            this.openEditForm();
+        })
+    }
     openEditForm() {
         console.log("open edit form");
     }
-    getName() { return this.number; }
+    getName() { return this.name; }
+    getId() { return this.id; }
 }
 
 class Choice extends Frame {
-    constructor(number) {
-        super(number);
+    constructor(name) {
+        super(name);
         this.type = "choice";
         this.text;
         this.options = [];
     }
-    static addFrame(number) {
-        return new Choice(number);
+    static addFrame(name) {
+        return new Choice(name);
     }
     static loadFrame(frame) {
-        const newFrame = new Choice(frame.number);
+        const newFrame = new Choice(frame.name,frame.id);
         newFrame.text = frame.text;
+        newFrame.id = frame.id;
+        newFrame.jumpDestination = frame.jumpDestination;
         if (!frame.options) {
             return newFrame;
         }
-        newFrame.options = frame.options;
+        newFrame.options = Choice.loadOptions(frame);
         return newFrame;
+    }
+    static loadOptions(frame){
+        console.log(frame.options);
+        return frame.options;
     }
     displayFrame() {
         dialogueField.innerText = this.text;
+        playerChoiceField.innerHTML = "";
+        for(const option of this.options){
+            const div = document.createElement("div");
+            div.classList.add("player-choice-div");
+            div.innerText = option.text;
+            if(option["effects"]["flag"]){
+                div.addEventListener("click",()=>{
+                    console.log("set flags once those are implemented",option["effects"]["flag"]);
+                })
+            }
+            if(option["effects"]["jump"]){
+                div.addEventListener("click",()=>{
+                    playerChoiceField.innerHTML = "";
+                    const destination = Frame.loadJumpDestination(option["effects"]["jump"]);
+                    if(destination.frame){
+                        destination.frame.displayFrame();
+                    } else if(destination.scene){
+                        destination.scene.runScene();
+                    } else if(destination.chapter){
+                        destination.chapter.runChapter();
+                    }
+                })
+            }
+            playerChoiceField.appendChild(div);
+        }
     }
     addText(text) {
         this.text = text;
     }
     addOption(text, effects) {
         this.options.push({ "text": text, "effects": effects });
+        console.log(this);
     }
     showFramePreview(previewDiv) {
         const div = document.createElement("div");
@@ -493,6 +798,7 @@ class Choice extends Frame {
         this.showDetailedOverview(form);
         const textButton = utils.appendButton("Edit Text", form, () => { this.openEditTextForm() });
         const optionButton = utils.appendButton("Edit Options", form, () => { this.openEditOptionsForm() });
+        const jumpButton = utils.appendButton("Edit Next Frame", form, () => { this.openNextFrameForm() });
     }
     showDetailedOverview(parent) {
         if (this.text) {
@@ -502,18 +808,46 @@ class Choice extends Frame {
         }
         if (this.options) {
             for (const option of this.options) {
-                const div = document.createElement("div");
-                div.innerText = JSON.stringify(option);
+                const div = this.makeOptionDiv(option);
+
                 parent.appendChild(div);
             }
         }
     }
+    makeOptionDiv(option){
+        const div = document.createElement("div");
+        div.innerText += option["text"];
+        if(option["effects"]["jump"]){
+            div.innerText += `
+                jump:
+                ${option["effects"]["jump"]["chapter"]}, ${option["effects"]["jump"]["scene"]}, ${option["effects"]["jump"]["frame"]}
+            `;
+        }
+        if(option["effects"]["flag"]){
+            for(const flag of option["effects"]["flag"]){
+                console.log(flag);
+                div.innerText += `
+                    ${flag.type}: ${flag.value}
+                `;
+            }
+        }
+        return div;
+    }
     openEditOptionsForm() {
         const types = ["flag", "jump"];
         const form = utils.openNewForm("form");
-        utils.setModalBackButton(() => { this.openEditForm() });
         form.innerHTML = "<h3>Edit Options</h3>";
         utils.setModalBackButton(() => { this.openEditForm() });
+        
+        for(const option of this.options){
+            const div = this.makeOptionDiv(option);
+            form.appendChild(div);
+            const removeButton = utils.appendButton("Remove",div,()=>{
+                this.options = this.options.filter(o=>o != option);
+                this.openEditOptionsForm();
+            })
+        }
+
         const optionName = document.createElement("textarea");
         form.appendChild(optionName);
         const button = utils.appendButton("Add", form, () => { addOptionValue() });
@@ -521,145 +855,124 @@ class Choice extends Frame {
         const saveButton = utils.appendButton("Save", form, () => {
             const data = {};
             data["text"] = optionName.value;
-            data["effects"] = [];
-            form.querySelector(".optionValue").forEach(div => {
-                const optionType = "A";
-                if (optionType.value == "flag") {
-                    data["flag"] = { "type": flagName.value, "value": flagValue.value };
-                } else if (optionType.value == "jump") {
-                    data["jump"] = { "chapter": chapterSelect.value, "scene": sceneSelect.value, "frame": frameSelect.value };
+            data["effects"] = {};
+            form.querySelectorAll(".optionValue").forEach(div => {
+                console.log(div);
+                const optionType = div.querySelector("#option-type").value;
+                if (optionType == "flag") {
+                    if(!data["effects"]["flag"]){
+                        data["effects"]["flag"] = [];
+                    }
+                    data["effects"]["flag"].push({ "type": div.querySelector("#flag-name").value, "value": div.querySelector("#flag-value").value });
+                } else if (optionType == "jump") {
+                    const chapter = div.querySelector("#chapter-select").value;
+                    const scene = div.querySelector("#scene-select").value;
+                    const frame = div.querySelector("#frame-select").value;
+                    data["effects"]["jump"] = { "chapter": chapter, "scene": scene, "frame": frame };
                 }
             })
-
-            this.options.push(data);
-            this.openEditForm();
+            this.addOption(data["text"],data["effects"]);
+            this.openEditOptionsForm();
         })
 
         addOptionValue();
 
         function addOptionValue() {
-            const optionValue = document.createElement("div");
+            let optionValue = document.createElement("div");
             optionValue.classList.add("optionValue");
             const optionType = document.createElement("select");
-            optionValue.appendChild(optionType);
+            optionType.id = "option-type";
             for (const type of types) {
                 const option = document.createElement("option");
                 option.value = type;
                 option.innerText = type;
                 optionType.appendChild(option);
             }
+            optionType.value = "flag";
             form.appendChild(optionValue);
-            const flagName = document.createElement("input");
+            const flagName = document.createElement("select");
+            flagName.id = "flag-name";
+            for(const flag of gameData.getFlags()){
+                const option = document.createElement("option");
+                option.innerText = flag.name;
+                option.value = flag.name;
+                flagName.appendChild(option);
+            }
             const flagValue = document.createElement("input");
-            const chapterSelect = document.createElement("select");
-            const sceneSelect = document.createElement("select");
-            const frameSelect = document.createElement("select");
+            flagValue.id = "flag-value";
 
 
             optionValue.appendChild(flagName);
             optionValue.appendChild(flagValue);
+            optionValue.appendChild(optionType);
 
             optionType.addEventListener("change", () => {
-                optionValue.innerHTML = "";
+                optionValue.remove();
                 if (optionType.value == "flag") {
+                    optionValue = document.createElement("div");
+                    optionValue.classList.add("optionValue");
                     optionValue.appendChild(flagName);
                     optionValue.appendChild(flagValue);
                 } else if (optionType.value == "jump") {
-                    optionValue.appendChild(chapterSelect);
-                    optionValue.appendChild(sceneSelect);
-                    optionValue.appendChild(frameSelect);
-
-                    chapterSelect.innerHTML = "";
-                    sceneSelect.innerHTML = "";
-                    frameSelect.innerHTML = "";
-
-                    setChapterSelect();
-                    setSceneSelect();
-                    setFrameSelect();
-                    chapterSelect.addEventListener("change", () => {
-                        sceneSelect.innerHTML = "";
-                        setSceneSelect();
-                    })
-
-                    sceneSelect.addEventListener("change", () => {
-                        frameSelect.innerHTML = "";
-                        setFrameSelect();
-                    })
-
+                    optionValue = Frame.makeJumpSelect();
                 }
+                optionValue.appendChild(optionType);
                 form.appendChild(optionValue);
             })
 
-
-            function setChapterSelect() {
-                for (const chapter of gameData.getChapters()) {
-                    const option = document.createElement("option");
-                    option.value = chapter.getName();
-                    option.innerText = chapter.getName();
-                    chapterSelect.appendChild(option);
-                }
-            }
-
-            function setSceneSelect() {
-                const chapter = gameData.getChapterByName(chapterSelect.value);
-                for (const scene of chapter.getScenes()) {
-                    const option = document.createElement("option");
-                    option.value = scene.getName();
-                    option.innerText = scene.getName();
-                    sceneSelect.appendChild(option);
-                }
-            }
-
-            function setFrameSelect() {
-                const chapter = gameData.getChapterByName(chapterSelect.value);
-                const scene = chapter.getSceneByName(sceneSelect.value);
-                for (const frame of scene.getFrames()) {
-                    const option = document.createElement("option");
-                    option.value = frame.getName();
-                    option.innerText = frame.getName();
-                    frameSelect.appendChild(option);
-                }
-            }
         }
 
     }
 }
 
 class Dialogue extends Frame {
-    constructor(number) {
-        super(number);
+    constructor(name) {
+        super(name);
         this.type = "dialogue";
         this.characters = [];
         this.speaker;
         this.text;
     }
-    static addFrame(number) {
-        return new Dialogue(number);
+    static addFrame(name,id) {
+        return new Dialogue(name);
     }
     static loadFrame(frame) {
-        const newFrame = new Dialogue(frame.number);
+        const newFrame = new Dialogue(frame.name);
+        newFrame.jumpDestination = frame.jumpDestination;
         newFrame.speaker = frame.speaker;
+        newFrame.id = frame.id;
         newFrame.text = frame.text;
         if (!frame.characters) {
             return newFrame;
         }
         if (frame.speaker) {
-            newFrame.speaker = gameData.getCharacterByName(frame.speaker.name);
+            newFrame.speaker = gameData.getCharacterById(frame.speaker.id);
         }
         for (const character of frame.characters) {
-            newFrame.characters.push({ "character": gameData.getCharacterByName(character.character.name), "position": character.position });
+            newFrame.characters.push({ "character": gameData.getCharacterById(character.character.id), "position": character.position });
         }
         return newFrame;
     }
     displayFrame() {
         dialogueField.innerText = this.text;
         speakerName.innerText = this.speaker.getName();
+        const nextButton = utils.appendButton("->", textField, () => { this.nextFrame(); nextButton.remove() });
+        nextButton.classList.add("next-button");
     }
+    
+    nextFrame() {
+        const destination = Frame.loadJumpDestination(this.jumpDestination);
+        console.log(destination);
+        this.jump(destination);
+    }
+
     showFramePreview(previewDiv) {
         const div = document.createElement("div");
         previewDiv.appendChild(div);
         if (this.speaker) {
-            div.innerText = `Speaker: ${this.speaker.getName()}`;
+            div.innerText = `Speaker: ${this.speaker.getName()}
+            Text: ${this.text}
+            `;
         }
     }
     addSpeaker(character) {
@@ -678,11 +991,21 @@ class Dialogue extends Frame {
         const textButton = utils.appendButton("Edit Text", form, () => { this.openEditTextForm() });
         const charactersButton = utils.appendButton("Edit Characters", form, () => { this.openEditCharactersForm() });
         const speakerButton = utils.appendButton("Edit Speaker", form, () => { this.openEditSpeakerForm() });
+        const jumpButton = utils.appendButton("Edit Next Frame", form, () => { this.openNextFrameForm() });
     }
     showDetailedOverview(parent) {
+        if(this.jumpDestination){
+            const jumpDiv = document.createElement("div");
+            jumpDiv.innerText = `
+                Next Frame:
+                ${this.jumpDestination["chapter"]}, ${this.jumpDestination["scene"]}, ${this.jumpDestination["frame"]}
+            `;
+            parent.appendChild(jumpDiv);
+        }
         if (this.text) {
             const textDiv = document.createElement("div");
-            textDiv.innerText = this.text;
+            textDiv.innerText = `Text:
+            ${this.text}`;
             parent.appendChild(textDiv);
         }
         if (this.speaker) {
@@ -709,13 +1032,13 @@ class Dialogue extends Frame {
         let characterField = document.createElement("select");
         for (const character of this.characters) {
             const option = document.createElement("option");
-            option.value = character.character.getName();
+            option.value = character.character.getId();
             option.innerText = character.character.getName();
             characterField.appendChild(option);
         }
         form.appendChild(characterField);
         let button = utils.appendButton("Set", form, () => {
-            this.speaker = gameData.getCharacterByName(characterField.value);
+            this.speaker = gameData.getCharacterById(characterField.value);
             this.openEditForm();
         })
 
@@ -727,7 +1050,7 @@ class Dialogue extends Frame {
         let characterField = document.createElement("select");
         for (const character of gameData.getCharacters()) {
             const option = document.createElement("option");
-            option.value = character.name;
+            option.value = character.getId();
             option.innerText = character.getName();
             characterField.appendChild(option);
         }
@@ -735,7 +1058,7 @@ class Dialogue extends Frame {
         let positionField = document.createElement("input");
         form.appendChild(positionField);
         let button = utils.appendButton("Add", form, () => {
-            this.characters.push({ "character": gameData.getCharacterByName(characterField.value), "position": positionField.value });
+            this.characters.push({ "character": gameData.getCharacterById(characterField.value), "position": positionField.value });
             this.openEditCharactersForm();
         })
         for (const character of this.characters) {
@@ -762,8 +1085,10 @@ function setSaveAndLoad(gameData) {
         let fr = new FileReader();
         fr.onload = function () {
             gameData.load(JSON.parse(fr.result));
+            gameData.start();
         }
         fr.readAsText(importForm.querySelector("#file").files[0]);
+        utils.closeModal();
     })
 }
 
@@ -774,6 +1099,7 @@ function download(content, fileName, contentType) {
     a.download = fileName;
     a.click();
 }
+
 
 const devToolSideBar = document.getElementById("dev-tool-sidebar");
 const imageField = document.getElementById("image-field");

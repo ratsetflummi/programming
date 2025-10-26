@@ -59,6 +59,10 @@ function openNewForm(formId) {
 }
 
 
+function generateId(){
+    return new Date() / 1;
+}
+
 class Color {
     constructor(color) {
         this.hex;
@@ -166,4 +170,5 @@ export {
     appendButton,
     setModalBackButton,
     removeModalBackButton,
+    generateId,
 }

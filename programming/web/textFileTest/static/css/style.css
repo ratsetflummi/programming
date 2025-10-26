@@ -1,11 +1,15 @@
 :root{
     --button-bg: rgb(67, 10, 94);
+    --input-bg: rgb(124, 63, 153);
     --button-border: 1px solid black;
     --button-text: white;
+    --choice-bg: rgb(148, 102, 148);
+    --choice-bg-hover: rgb(190, 162, 190);
+    --choice-text: rgb(255, 255, 255);
 }
 
 
-select, button, input{
+select, button, input, textarea{
     background-color: var(--button-bg);
     border: var(--button-border);
     color: var(--button-text);
@@ -15,14 +19,34 @@ select, button, input{
     padding: 0 10px;
 }
 
-select, input{
+select{
     width: 100%;
+}
+
+input,textarea{
+    background-color: var(--input-bg);
+    width: 95%;
+    display: block;
 }
 
 .preview-div{
     padding: 10px;
 }
 
+.player-choice-div{
+    width: 100%;
+    border: var(--button-border);
+    border-radius: 15px;
+    text-align: center;
+    background-color: var(--choice-bg);
+    color: var(--choice-text);
+    padding: 10px 0;
+    margin: 5px 0;
+    cursor: pointer;
+}
+.player-choice-div:hover{
+    background-color: var(--choice-bg-hover);
+}
 
 #image-field {
     height: 60vh;
@@ -75,7 +99,9 @@ main {
 }
 
 #player-choice {
-
+    position: absolute;
+    top: 40vh;
+    width: 95%;
 }
 
 label{
