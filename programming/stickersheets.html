@@ -1,0 +1,62 @@
+<style>
+    .row {
+        display: flex;
+        justify-content: space-between;
+    }
+    .col {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+</style>
+<body>
+	<div id="main-div">
+        <textarea id="input"></textarea>
+        <button id="print">print</button>
+	</div>
+</body>
+<script>
+    const body = document.querySelector("#main-div");
+    const input = document.getElementById("input");
+    const button = document.getElementById("print");
+    button.addEventListener("click",()=>{
+        setSheet(input.value.split(";"));
+    })
+    function setSheet(titles){
+        body.innerHTML = "";
+        const pageHeight = 1200;
+        const pageWidth = 800;
+        const entiresPerRow = 5;
+        const topPadding = 60;
+        const bottomPadding = 100;
+        const heightPerRow = 170;
+        const heightPerSection = pageHeight / titles.length;
+        const rowsPerSection = heightPerSection / heightPerRow;
+        titles.forEach(title=>{
+            const div = document.createElement("div");
+            const col = document.createElement("div");
+            const titleDiv = document.createElement("div");
+            titleDiv.style.fontSize = "xx-large";
+            col.classList.add("col");
+            div.style.width = pageWidth;
+            col.style.padding = topPadding + "px 50px " + bottomPadding + "px 50px";
+            col.style.height = (heightPerSection - topPadding - bottomPadding - 60) + "px";
+            div.appendChild(titleDiv);
+            div.appendChild(col);
+            body.appendChild(div);
+            titleDiv.innerText = title;
+            for(let i = 0; i<rowsPerSection; i++){
+                const row = document.createElement("div");
+                row.classList.add("row");
+                col.appendChild(row);
+                for(let i = 0; i<entiresPerRow; i++){
+                    const checkmark = document.createElement("div");
+                    row.appendChild(checkmark);
+                    checkmark.innerText = "O";
+                    checkmark.style.fontSize = "xx-large";
+                }
+            }
+        })
+        print();
+    }
+</script>
