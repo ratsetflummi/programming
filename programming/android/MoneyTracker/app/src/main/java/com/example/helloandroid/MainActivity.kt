@@ -197,6 +197,7 @@ fun MainScreen(
     val ps = "£"
     val context = LocalContext.current
     val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    val exchangeRate = 1.2
 
     var numberInput by remember { mutableStateOf("") }
     var textInput by remember { mutableStateOf("") }
@@ -296,13 +297,13 @@ fun MainScreen(
 
     // Calculate the current total sum (regular entries + all past recurring entries)
     val sum = allEntries.sumOf { entry ->
-        val amountInEuro = if (entry.currency == "Pound") entry.number * 0.8 else entry.number
+        val amountInEuro = if (entry.currency == "Pound") entry.number * exchangeRate else entry.number
         if (entry.type == "Expense") -amountInEuro else amountInEuro
     }
 
     // Calculate the sum of projected recurring entries for the next 30 days (upcoming only)
     val projectedRecurringSum = projectedRecurring.sumOf { entry ->
-        val amountInEuro = if (entry.currency == "Pound") entry.number * 0.8 else entry.number
+        val amountInEuro = if (entry.currency == "Pound") entry.number * exchangeRate else entry.number
         if (entry.type == "Expense") -amountInEuro else amountInEuro
     }
 
@@ -425,8 +426,8 @@ fun MainScreen(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Total: %.2f€ | %.2f$ps".format(sum, sum * 0.8))
-            Text("Projected Recurring (next 30 days): %.2f€ | %.2f$ps".format(projectedRecurringSum, projectedRecurringSum * 0.8))
+            Text("Total: %.2f€ | %.2f$ps".format(sum, sum / exchangeRate))
+            Text("Projected Recurring (next 30 days): %.2f€ | %.2f$ps".format(projectedRecurringSum, projectedRecurringSum / exchangeRate))
 
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = { navController.navigate("recurring") }) { Text("Go to Recurring Entries") }
