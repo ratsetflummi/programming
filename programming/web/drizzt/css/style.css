@@ -1,0 +1,129 @@
+:ROOT{
+    --main-text: white;
+    --main-background: black;
+    --sidebar-text: black;
+    --sidebar-background: white;
+    --sidebar-width: 30vw;
+    --navbar-text: white;
+    --navbar-background: black;
+    --navbar-height: 60px;
+    --main-width: calc(100vw - var(--sidebar-width));
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body{
+    background-color: orange;
+}
+
+.layout{
+    display: flex;
+
+}
+
+main{
+    left: 0;
+    width: var(--main-width);
+    background-color: var(--main-background);
+    color: var(--main-text);
+}
+
+sidebar{
+    right: 0;
+    width: var(--sidebar-width);
+    max-width: 100vh;
+    overflow-y: scroll;
+    background-color: var(--sidebar-background);
+    color: var(--sidebar-text);
+}
+
+navbar{
+    height: var(--navbar-height);
+    top: 0;
+    background-color: white;
+    width: 100vw;
+    left:0;
+    background-color: var(--navbar-background);
+    color: var(--navbar-text);
+
+    display: flex;
+    justify-content: space-evenly;
+}
+
+navbar a{
+    padding: 10px;
+}
+
+.nav-divider{
+    top: 0;
+    border-left: 1px solid var(--navbar-text);
+    height: var(--navbar-height);
+}
+
+main, sidebar{
+    top: var(--navbar-height);
+    height: calc(100vh - var(--navbar-height));
+    padding: 10px;
+    overflow-y: scroll;
+}
+
+main, sidebar, navbar{
+    position: fixed;
+}
+
+main a{
+    color: var(--main-text);
+}
+
+sidebar a{
+    color: var(--sidebar-text);
+}
+
+navbar a{
+    color: var(--navbar-text);
+}
+
+a {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.collapse{
+    font-weight: bold;
+}
+
+table {
+    border-collapse: collapse;
+    width:95%;
+}
+
+main td, tr {
+    border: 1px solid var(--main-text);
+}
+
+sidebar td, tr {
+    border: 1px solid var(--sidebar-text);
+}
+
+.new-page{
+    font-style: italic;
+    text-decoration: underline;
+}
+
+.center{
+    text-align: center;
+}
+
+img{
+    max-height: 40vh;
+}
+
+sidebar img{
+    max-width: 100%;
+}
+
+main img {
+    max-width: 100%;
+}

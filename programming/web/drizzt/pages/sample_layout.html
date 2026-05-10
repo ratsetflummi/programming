@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>The Legend of Drizzt</title>
+        <link rel="stylesheet" href="../css/style.css">
+    </head>
+    <body>
+        <div class="layout">
+            <navbar id="navbar"></navbar>
+            <main>
+                <h1>The Legend of Drizzt - Interactive</h1>
+                <p><a onclick="loadPanel('drizzt')">Drizzt</a></p>
+
+                <p><a data-target="s1" class="collapse">Drizzt</a></p>
+                <div id="s1">
+                    next section
+
+                </div>
+
+
+
+                <p><a class="new-page" href="t2b1-homeland.html">Homeland</a></p>
+
+            </main>
+            
+            <sidebar id="sidebar">
+            </sidebar>
+        </div>
+        <script src="../js/sidebar.js"></script>
+        <script src="../js/navbar.js"></script>
+        <script type="module" src="../js/collapse.js"></script>
+        <script type="module" src="../js/cookies.js"></script>
+        <script type="module" src="../js/theme.js"></script>
+        <script type="module" src="../js/settings.js"></script>
+</html>
