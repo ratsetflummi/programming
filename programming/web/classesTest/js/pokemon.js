@@ -14,6 +14,7 @@ const abilitys = await (await fetch(`../data/ability.txt`)).json();
 const evolutionChains = await (await fetch(`../data/evolutionChain.txt`)).json();
 
 document.querySelector("#download_pokemon_data").addEventListener("click",download_pokemon_data.downloadPokemonData);
+
 async function init(){
     console.log("object");
     console.log(canonData);

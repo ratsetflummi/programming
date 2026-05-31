@@ -1,0 +1,20 @@
+#calendar td{
+    border: 1px solid black;
+}
+
+#calendar{
+    border-collapse: collapse;
+}
+
+.weekend{
+    background-color: grey;
+}
+
+.holiday{
+    background-color: orange;
+}
+
+.marked-day{
+    border-color: white !important;
+    box-shadow: 1px 1px white inset;
+}

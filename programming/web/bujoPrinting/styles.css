@@ -1,0 +1,122 @@
+table {
+  border-collapse: collapse;
+}
+/* 
+@page {
+    size: 7in 9.25in;
+    margin: 27mm 16mm 27mm 16mm;
+} */
+
+p{
+    color: pink;
+}
+
+.calendar {
+    position: absolute;
+    top: 56%;
+    left: 0;
+    width: 100%;
+    height: 44%;
+    table-layout: fixed;
+}
+
+.calendar-title{
+    position: absolute;
+    top:50%;
+    text-align: center;
+    width: 100%;
+}
+
+.calendar td {
+    border: 2px solid black;
+    vertical-align: top;
+    padding: 2px;
+}
+
+.month-title{
+    position: absolute;
+
+    left: 40px;
+    top: 20%;
+
+    transform: translate(-50%, -50%) rotate(-90deg);
+
+    font-size: 32pt;
+    font-weight: bold;
+}
+
+.in-month{
+    font-weight: bold;
+}
+
+.out-of-month{
+    color: grey;
+}
+
+@media print {
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+
+    /* bottom half of page */
+    .week-container {
+        position: absolute;
+        top: 53%;
+        left: 0;
+        width: 100%;
+        height: 47%; 
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .week-view {
+        height: 100%;  
+        width: 45vh;  
+        
+        table-layout: fixed;
+        border-collapse: collapse;
+
+        transform-origin: center center;
+        transform: rotate(-90deg); 
+    }
+
+    /* 1. Base TD styles (Borders removed from here) */
+    .week-view td {
+        font-size: 10pt;
+        padding: 2mm; 
+    }
+
+    /* 2. Adjust Row Heights (Middle row is now taller) */
+    .week-view tr:nth-child(1),
+    .week-view tr:nth-child(3) {
+        height: 25%; 
+    }
+    
+    .week-view tr:nth-child(2) {
+        height: 50%; /* Middle row takes up half the table height */
+    }
+
+    /* 3. Move text in the top row cells to the bottom */
+    .week-view tr:first-child td {
+        vertical-align: bottom;
+    }
+
+    .week-view tr:not(:first-child) td {
+        vertical-align: top;
+    }
+
+    /* 4. Internal Grid Borders Only (Removes outer borders) */
+    /* Add top borders to every row EXCEPT the first one */
+    .week-view tr:not(:first-child) td {
+        border-top: 2px solid black;
+    }
+
+    /* Add left borders to every cell EXCEPT the first one in each row */
+    .week-view td:not(:first-child) {
+        border-left: 2px solid black;
+    }
+}
