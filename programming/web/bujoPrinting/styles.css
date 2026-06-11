@@ -119,4 +119,9 @@ p{
     .week-view td:not(:first-child) {
         border-left: 2px solid black;
     }
+
+    .calendar-weekday{
+        height: 5%;
+        font-weight: bold;
+    }
 }

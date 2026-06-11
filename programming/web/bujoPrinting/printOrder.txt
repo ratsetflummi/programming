@@ -1,41 +1,148 @@
 16 seiten
 
-1 leer
-2 kalender juni
-3 monatsübersicht juni
-4 1.6. - 7.6.
-5 leer
-6 8.6. - 14.6.
-7 leer
-8 15.6. - 21.6.
-9 leer
-10 22.6. - 28.6.
-11 leer
-12 29.6. - 5.7.
-13 leer
-14 kalender juli
-15 monatsübersicht juli
-16 6.7. - 12.7.
-
-
-1 6.7. - 12.7. - leer1
-2 kalender juni - monatsübersicht juli
-
-3 kalender juli - monatsübersicht juni
-4 1.6. - 7.6. - leer13
-
-5 29.6. - 5.7. - leer5
-6 8.6. - 14.6. - leer11
-
-7 22.6. - 28.6. - leer7
-8 15.6. - 21.6. - leer9
-
-
 1: 16 - 1
 2: 2 - 15
+
 3: 14 - 3
 4: 4 - 13
+
 5: 12 - 5
 6: 6 - 11
+
 7: 10 - 7
 8: 8 - 9
+
+
+1 leer
+2 kalender juli
+3 monatsübersicht juli
+4 29.6. - 5.7.
+5 leer
+6 6.7. - 12.7.
+7 leer
+8 13.7. - 19.7.
+9 leer
+10 20.7. - 26.7.
+11 leer
+12 27.7. - 2.8.
+13 leer
+14 kalender august
+15 monatsübersicht august
+16 3.8. - 9.8.
+
+
+1 3.8. - 9.8. - leer1
+2 kalender juli - monatsübersicht august
+
+3 kalender august - monatsübersicht juli
+4 29.6. - 5.7. - leer13
+
+5 27.7. - 2.8. - leer5
+6 6.7. - 12.7. - leer11
+
+7 20.7. - 26.7. - leer7
+8 13.7. - 19.7. - leer9
+
+
+
+1 21.9. - 27.9. - leer1
+2 10.8. - 16.8. - leer15
+
+3 14.9. - 20.9. - leer3
+4 17.8. - 23.8. - leer 13
+
+5: 7.9. - 13.9. - leer5
+6: 24.8. - 30.8. - monatsübersicht september
+
+7: kalender september - leer7
+8: 31.8. - 6.9. - leer9
+
+
+
+1: 2.11. - 8.11. - leer
+2: 28.9. - 4.10. - monatsübersicht november
+
+3: kalender november - leer
+4: kalender oktober - leer
+
+5: 26.10. - 1.11. - monatsübersicht oktober
+6: 5.10. - 11.10. - leer
+
+7: 19.10. - 25.10. - leer
+8: 12.10. - 18.10. - leer
+
+
+
+1: 21.12. - 27.12. - leer
+2: 9.11. - 15.11. - leer
+
+3: 14.12. - 20.12. - leer
+4: 16.11. - 22.11 - leer
+
+5: 7.12. - 13.12. - leer
+6: 23.11. - 29.11. - monatsübersicht dezember
+
+7: kalender dezember - leer
+8: 30.11. - 6.12. - leer
+
+
+
+1: 1.2. - leer
+2: 28.12. - monatsübersicht februar
+
+3: kalender februar - leer
+4: kalender januar - leer
+
+5: 25.1. - 31.1. - monatsübersicht januar
+6: 4.1. - 10.1. - leer
+
+7: 18.1. - 24.1. - leer
+8: 11.1. - 17.1. - leer
+
+
+
+1: 22.3. - leer
+2: 8.2. - leer
+
+3: 15.3. - leer
+4: 15.2. - leer
+
+5: 8.3. - leer
+6: 22.2. - leer
+
+7: 1.3. - leer
+8: kal märz - üb märz
+
+
+
+1: 3.5. - leer
+2: 29.3. - üb mai
+
+3: kal mai - leer
+4: kal april - leer
+
+5: 26.4. - üb april
+6: 5.4. - leer
+
+7: 19.4. - leer
+8: 12.4. - leer
+
+
+
+1: 21.6. - leer
+2: 10.5. - leer
+
+3: 14.6. - leer
+4: 17.5. - leer
+
+5: 7.6. - leer
+6: 24.5. - üb juni
+
+7: kal juni - leer
+8: 31.5. - leer
+
+
+
+
+
+

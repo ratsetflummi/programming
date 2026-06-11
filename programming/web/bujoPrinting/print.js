@@ -1,9 +1,11 @@
 const page = document.querySelector("body");
-
+let titleMonth = null;
 function drawControllElements(){
     page.innerHTML = "";
+    titleMonth = null;
     const controllSection = document.createElement("div");
     page.appendChild(controllSection);
+
     ["left","right"].forEach(side=>{
         const dateSelector = document.createElement("input");
         dateSelector.type = "date";
@@ -39,6 +41,7 @@ function drawControllElements(){
     printButton.addEventListener("click",()=>{
         controllSection.remove();
         print();
+        drawControllElements();
     })
 }
 
@@ -52,6 +55,16 @@ function printCalendar(startDate){
     page.appendChild(calendarTitle);
     calendar.classList.add("calendar");
     page.appendChild(calendar);
+    const weekDay = getStartOfWeek(new Date(calendarStart));
+    const row = document.createElement("tr");
+    calendar.appendChild(row);
+    for(let i = 0; i < 7; i++){
+        const cell = document.createElement("td");
+        row.appendChild(cell);
+        cell.innerText = formatWeekDay(weekDay);
+        cell.classList.add("calendar-weekday");
+        addDaysToDate(weekDay,1);
+    }
     do {
         const row = document.createElement("tr");
         calendar.appendChild(row);
@@ -76,11 +89,14 @@ function printMonthTitle(startDate){
     monthTitleDiv.innerText = monthTitle;
     page.appendChild(monthTitleDiv);
     monthTitleDiv.classList.add("month-title");
-
+    titleMonth = startDate;
 }
 
 function printWeek(startDate) {
     page.innerHTML = "";
+    if(titleMonth){
+        printMonthTitle(titleMonth);
+    }
     const weekStart = getStartOfWeek(new Date(startDate));
 
     const container = document.createElement("div");
@@ -98,7 +114,7 @@ function printWeek(startDate) {
     }
 
     const cells = [
-        "This Week",
+        "Diese Woche",
         days[0],
         days[1],
         days[2],
@@ -106,7 +122,7 @@ function printWeek(startDate) {
         days[4],
         days[5],
         days[6],
-        "Next Week"
+        "Nächste Woche"
     ];
 
     let index = 0;
@@ -127,18 +143,12 @@ function printWeek(startDate) {
     document.body.appendChild(container);
 
     print();
-
+    drawControllElements();
 }
 
 function addDays(date, days) {
     date.setDate(date.getDate() + days);
     return date;
-}
-
-function formatWeekday(date) {
-    return date.toLocaleDateString("en-GB", {
-        weekday: "long"
-    });
 }
 
 function getStartOfWeek(date){
@@ -179,6 +189,14 @@ function formatDay(date){
         "day": "2-digit"
     }
     const dayString = date.toLocaleDateString("de-DE",dayOption);
+    return dayString;
+}
+
+function formatWeekDay(date){
+    weekdayOption =  {
+        "weekday": "long"
+    }
+    const dayString = date.toLocaleDateString("de-DE",weekdayOption);
     return dayString;
 }
 
