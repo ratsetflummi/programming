@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Etch a Sketch</title>
+    <link rel="stylesheet" href="etch.css">
+</head>
+
+<body>
+    <h2>etch</h2>
+    <button id="reset">reset</button>
+    <p>
+        <label name="width">width:</label>
+        <input id="width" value="100">
+        <label name="height">height:</label>
+        <input id="height" value="100">
+        <button id="apply-size">change size</button>
+    </p>
+    <div><small>to make sure your browser doesn't crash the size limit is 200x200</small></div>
+    <div><small>sizes above 100x100 can
+            lead to lag and
+            stuttering lines</small></div>
+    <p>Pick a color. Draw with left click. Erase with right click.</p>
+    <p>
+        <label>pick a color:</label>
+        <input id="color" type="color" value="#adadad">
+    </p>
+    <table id="field"></table>
+    <script type="module" src="./etch.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,38 @@
+html {
+    background-color: rgb(56, 40, 61);
+    color: white;
+    font-size: large;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+button {
+    background-color: blueviolet;
+    color: white;
+    border-radius: 5px;
+    border: 2px solid white;
+    height: 30px;
+    width: 100px;
+}
+
+#result {
+    background-color: rgb(56, 10, 54);
+    text-align: center;
+    border-radius: 5px;
+    padding: 15px 0;
+    border: 1px solid white;
+}
+
+.clicked {
+    background-color: rgb(53, 7, 97);
+}
+
+.special {
+
+    background-color: rgb(90, 37, 139);
+}
+
+.equals {
+    background-color: rgb(53, 7, 97);
+}
